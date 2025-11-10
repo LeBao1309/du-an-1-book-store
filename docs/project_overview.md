@@ -26,7 +26,7 @@ Pattern:  MVC đơn giản
 
 ### Cấu trúc thư mục
 ```
-book_management/
+project/
 ├── app/
 │   ├── controllers/     # Xử lý logic nghiệp vụ
 │   ├── models/          # Tương tác database
@@ -94,7 +94,7 @@ book_management/
 ### 2. Git Workflow
 ```bash
 # Bước 1: Lấy code mới nhất
-git pull origin main
+git pull origin develop
 
 # Bước 2: Tạo nhánh cho module của mình
 git checkout -b feature/homepage
