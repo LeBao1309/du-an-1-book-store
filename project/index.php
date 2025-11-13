@@ -3,7 +3,7 @@ declare(strict_types=1);
 ini_set('display_errors','1'); error_reporting(E_ALL); session_start();
 
 // NẠP DATABASE NGAY TẠI ĐÂY
-require_once __DIR__ . '/config/database.php'; 
+// require_once __DIR__ . '/config/database.php'; // <-- SỬA: Đã vô hiệu hóa dòng này
 
 /** BASE_URL khi đặt ở /du-an-1-book-store/project */
 if (!defined('BASE_URL')) {
