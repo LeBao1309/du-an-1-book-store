@@ -8,9 +8,17 @@ abstract class BaseController
         extract($data, EXTR_SKIP);
         $viewFile = __DIR__ . '/../views/' . $view . '.php';
         if (!file_exists($viewFile)) { http_response_code(500); return "View not found: {$view}"; }
+        
+        // --- SỬA ĐỔI: Thêm 5 dòng này để tạo biến $ASSET ---
+        $BASE = defined('BASE_URL') ? constant('BASE_URL') : '';
+        $ASSET = rtrim($BASE, '/');
+        if (!preg_match('~/public$~', $ASSET)) {
+            $ASSET .= '/public';
+        }
+        // --- KẾT THÚC SỬA ĐỔI ---
 
         ob_start();
-        include $viewFile;
+        include $viewFile; // $ASSET giờ đã có sẵn trong view
         $content = ob_get_clean();
 
         // inject layout data
@@ -21,7 +29,7 @@ abstract class BaseController
         $layout = __DIR__ . '/../views/layouts/main.php';
         if (file_exists($layout)) {
             ob_start();
-            include $layout;
+            include $layout; // $ASSET cũng có sẵn trong layout
             return ob_get_clean();
         }
         return $content;

@@ -2,10 +2,10 @@
 $BASE = defined('BASE_URL') ? constant('BASE_URL') : '';
 $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
 
-$ASSET = rtrim($BASE, '/');
-if (!preg_match('~/public$~', $ASSET)) {
-    $ASSET .= '/public';
-}
+// $ASSET = rtrim($BASE, '/');
+// if (!preg_match('~/public$~', $ASSET)) {
+//     $ASSET .= '/public';
+// }
 ?>
 <!doctype html>
 <html lang="vi">
@@ -13,11 +13,11 @@ if (!preg_match('~/public$~', $ASSET)) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WiseDecision Bookstore — Trang chủ</title>
-  <meta name="description" content="Mua sách hay, giao nhanh, giá tốt tại WiseDecision Bookstore" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  ...
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- dùng $ASSET cho static -->
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <link rel="stylesheet" href="<?= $ASSET; ?>/css/styles.css" />
   <style>
     .wd-toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
@@ -25,7 +25,6 @@ if (!preg_match('~/public$~', $ASSET)) {
   </style>
 </head>
 
-</head>
 <body>
   <?php if (!empty($flash) && !empty($flash['message'])): ?>
     <div class="wd-toast <?= $flash['type']==='error' ? 'error' : '' ?>">
@@ -53,13 +52,25 @@ if (!preg_match('~/public$~', $ASSET)) {
       </a>
 
       <div class="search">
-        <select class="cat-select" aria-label="Chọn danh mục">
-          <option value="all">Tất cả danh mục</option>
-          <option>Truyện</option>
-          <option>Kinh tế</option>
-          <option>Kỹ năng</option>
-          <option>Thiếu nhi</option>
+        <?php
+          // Thêm logic này để biết ID nào đang được chọn
+          $currentCatId = 'all'; // Mặc định
+          if (isset($_GET['c']) && $_GET['c'] === 'category') {
+            $currentCatId = (int)($_GET['id'] ?? 0);
+          }
+          // Nếu id=0 (trang "Tất cả sản phẩm") thì vẫn là 'all'
+          if ($currentCatId === 0) $currentCatId = 'all';
+        ?>
+
+        <select class="cat-select" aria-label="Chọn danh mục" id="headerCatSelect">
+          <option value="all" <?= $currentCatId === 'all' ? 'selected' : '' ?>>Tất cả danh mục</option>
+          <option value="1" <?= $currentCatId === 1 ? 'selected' : '' ?>>Sách Khoa học</option>
+          <option value="2" <?= $currentCatId === 2 ? 'selected' : '' ?>>Sách Văn học</option>
+          <option value="3" <?= $currentCatId === 3 ? 'selected' : '' ?>>Sách Kinh tế</option>
+          <option value="4" <?= $currentCatId === 4 ? 'selected' : '' ?>>Sách Kỹ năng sống</option>
+          <option value="5" <?= $currentCatId === 5 ? 'selected' : '' ?>>Sách Thiếu nhi</option>
         </select>
+        
         <input type="text" placeholder="Tìm kiếm sách, tác giả..." />
         <button class="btn" id="btnSearch">Tìm</button>
       </div>
@@ -84,7 +95,7 @@ if (!preg_match('~/public$~', $ASSET)) {
       <button class="btn btn-cat" id="btnCat">☰ Danh mục</button>
       <ul class="nav">
         <li><a class="active" href="<?= $BASE; ?>/">Trang chủ</a></li>
-        <li><a href="<?= $BASE; ?>/category">Sản phẩm</a></li>
+        <li><a href="?c=category&a=index&id=1">Sản phẩm</a></li> 
         <li><a href="<?= $BASE; ?>/blog">Blog</a></li>
         <li><a href="<?= $BASE; ?>/about">Giới thiệu</a></li>
         <li><a href="<?= $BASE; ?>/contact">Liên hệ</a></li>
@@ -97,39 +108,30 @@ if (!preg_match('~/public$~', $ASSET)) {
       <strong>Danh mục</strong>
       <button id="closeSidebar" aria-label="Đóng">✕</button>
     </div>
+    
     <ul class="tree">
-      <li><a href="<?= $BASE; ?>/category/new">Sách mới</a></li>
       <li>
-        <span>Văn học</span>
-        <ul>
-          <li><a href="<?= $BASE; ?>/category/tieu-thuyet">Tiểu thuyết</a></li>
-          <li><a href="<?= $BASE; ?>/category/truyen-ngan">Truyện ngắn</a></li>
-          <li><a href="<?= $BASE; ?>/category/light-novel">Light novel</a></li>
-        </ul>
+        <a href="?c=category&a=index&id=1">Sách Khoa học</a>
       </li>
       <li>
-        <span>Kinh tế</span>
-        <ul>
-          <li><a href="<?= $BASE; ?>/category/marketing">Marketing</a></li>
-          <li><a href="<?= $BASE; ?>/category/khoi-nghiep">Khởi nghiệp</a></li>
-          <li><a href="<?= $BASE; ?>/category/quan-tri">Quản trị</a></li>
-        </ul>
+        <a href="?c=category&a=index&id=2">Sách Văn học</a>
       </li>
       <li>
-        <span>Thiếu nhi</span>
-        <ul>
-          <li><a href="<?= $BASE; ?>/category/truyen-tranh">Truyện tranh</a></li>
-          <li><a href="<?= $BASE; ?>/category/khoa-hoc">Khoa học</a></li>
-        </ul>
+        <a href="?c=category&a=index&id=3">Sách Kinh tế</a>
       </li>
-    </ul>
-  </aside>
+      <li>
+        <a href="?c=category&a=index&id=4">Sách Kỹ năng sống</a>
+      </li>
+      <li>
+        <a href="?c=category&a=index&id=5">Sách Thiếu nhi</a>
+      </li>
+      </ul>
+    </aside>
 
   <?php if (!empty($successMsg)): ?>
     <div id="serverSuccess" data-message="<?= htmlspecialchars($successMsg, ENT_QUOTES, 'UTF-8'); ?>"></div>
   <?php endif; ?>
 
-  <!-- vùng render view con -->
   <main class="container section">
     <?= $content ?>
   </main>
@@ -171,16 +173,19 @@ if (!preg_match('~/public$~', $ASSET)) {
 
   <script>
   // toast từ serverSuccess
-  (function(){
-    var el = document.getElementById('serverSuccess');
-    if(!el) return;
-    var msg = el.getAttribute('data-message');
-    if(!msg) return;
-    var t = document.createElement('div');
-    t.className = 'wd-toast';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function(){ t.remove(); }, 3000);
+ (function() {
+    var sel = document.getElementById('headerCatSelect');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var catId = this.value;
+        if (catId && catId !== 'all') {
+          window.location.href = '?c=category&a=index&id=' + catId;
+        } else if (catId === 'all') {
+          // SỬA Ở ĐÂY:
+          window.location.href = '?c=category&a=index'; // <-- Bỏ 'id' đi
+        }
+      });
+    }
   })();
   </script>
 </body>
