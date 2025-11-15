@@ -1,6 +1,6 @@
 <?php
 
-// Sửa 1: Kế thừa BaseModel
+require_once __DIR__ . '/BaseModel.php';
 class Book extends BaseModel {
     
     public static function getByCategory($categoryId) {

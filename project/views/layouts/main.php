@@ -1,11 +1,18 @@
 <?php
-$BASE = defined('BASE_URL') ? constant('BASE_URL') : '';
+// User hiện tại (nếu có)
 $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
 
-// $ASSET = rtrim($BASE, '/');
-// if (!preg_match('~/public$~', $ASSET)) {
-//     $ASSET .= '/public';
-// }
+// Đường dẫn asset tương đối (từ index.php)
+$ASSET = 'public';
+
+// Xác định danh mục đang được chọn (dùng cho select)
+$currentCatId = 'all';
+if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
+    $currentCatId = (int)($_GET['id'] ?? 0);
+}
+if ($currentCatId === 0) {
+    $currentCatId = 'all';
+}
 ?>
 <!doctype html>
 <html lang="vi">
@@ -15,10 +22,11 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
   <title>WiseDecision Bookstore — Trang chủ</title>
   ...
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  <!-- CSS của project (tương đối) -->
   <link rel="stylesheet" href="<?= $ASSET; ?>/css/styles.css" />
+
   <style>
     .wd-toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
     .wd-toast.error{background:#dc2626}
@@ -30,9 +38,13 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
     <div class="wd-toast <?= $flash['type']==='error' ? 'error' : '' ?>">
       <?= htmlspecialchars($flash['message']) ?>
     </div>
-    <script>setTimeout(function(){var t=document.querySelector('.wd-toast'); if(t) t.remove();},3000);</script>
+    <script>
+      setTimeout(function(){
+        var t=document.querySelector('.wd-toast');
+        if(t) t.remove();
+      },3000);
+    </script>
   <?php endif; ?>
-  ...
 
   <div class="topbar">
     <div class="container">
@@ -47,21 +59,13 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
 
   <header class="header">
     <div class="container header-inner">
-      <a class="brand" href="<?= $BASE; ?>/">
-        <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> Bo⊑kStore
+      <!-- Logo / Trang chủ -->
+      <a class="brand" href="index.php?controller=home&action=index">
+        <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> BookStore
       </a>
 
       <div class="search">
-        <?php
-          // Thêm logic này để biết ID nào đang được chọn
-          $currentCatId = 'all'; // Mặc định
-          if (isset($_GET['c']) && $_GET['c'] === 'category') {
-            $currentCatId = (int)($_GET['id'] ?? 0);
-          }
-          // Nếu id=0 (trang "Tất cả sản phẩm") thì vẫn là 'all'
-          if ($currentCatId === 0) $currentCatId = 'all';
-        ?>
-
+        <!-- Select danh mục -->
         <select class="cat-select" aria-label="Chọn danh mục" id="headerCatSelect">
           <option value="all" <?= $currentCatId === 'all' ? 'selected' : '' ?>>Tất cả danh mục</option>
           <option value="1" <?= $currentCatId === 1 ? 'selected' : '' ?>>Sách Khoa học</option>
@@ -70,7 +74,7 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
           <option value="4" <?= $currentCatId === 4 ? 'selected' : '' ?>>Sách Kỹ năng sống</option>
           <option value="5" <?= $currentCatId === 5 ? 'selected' : '' ?>>Sách Thiếu nhi</option>
         </select>
-        
+
         <input type="text" placeholder="Tìm kiếm sách, tác giả..." />
         <button class="btn" id="btnSearch">Tìm</button>
       </div>
@@ -79,26 +83,32 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
         <a href="#" class="nav-icon" title="Yêu thích">❤</a>
 
         <?php if (!empty($currentUser)): ?>
-          <a href="?c=home&a=profile" class="nav-icon" title="Tài khoản: <?= htmlspecialchars($currentUser['name'] ?? ''); ?>">👤</a>
-          <a href="?c=auth&a=logout" class="nav-icon" title="Đăng xuất">🚪</a>
+          <a href="index.php?controller=home&action=profile"
+             class="nav-icon"
+             title="Tài khoản: <?= htmlspecialchars($currentUser['name'] ?? ''); ?>">👤</a>
+          <a href="index.php?controller=auth&action=logout"
+             class="nav-icon"
+             title="Đăng xuất">🚪</a>
         <?php else: ?>
-          <a href="?c=auth&a=login" class="nav-icon" title="Tài khoản">👤</a>
+          <a href="index.php?controller=auth&action=login"
+             class="nav-icon"
+             title="Tài khoản">👤</a>
         <?php endif; ?>
 
-        <a href="<?= $BASE; ?>/cart" class="nav-icon cart" title="Giỏ hàng">
+        <!-- Cart: tạm thời để # -->
+        <a href="#cart" class="nav-icon cart" title="Giỏ hàng">
           <span>🛒</span><i class="badge" id="cartBadge">0</i>
         </a>
       </nav>
     </div>
 
     <div class="container navline">
-      <button class="btn btn-cat" id="btnCat">☰ Danh mục</button>
       <ul class="nav">
-        <li><a class="active" href="<?= $BASE; ?>/">Trang chủ</a></li>
-        <li><a href="?c=category&a=index&id=1">Sản phẩm</a></li> 
-        <li><a href="<?= $BASE; ?>/blog">Blog</a></li>
-        <li><a href="<?= $BASE; ?>/about">Giới thiệu</a></li>
-        <li><a href="<?= $BASE; ?>/contact">Liên hệ</a></li>
+        <a href="index.php?controller=home&action=index">Trang chủ</a>
+        <a href="index.php?controller=category&action=index">Xem danh mục</a>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Giới thiệu</a></li>
+        <li><a href="#">Liên hệ</a></li>
       </ul>
     </div>
   </header>
@@ -110,23 +120,13 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
     </div>
     
     <ul class="tree">
-      <li>
-        <a href="?c=category&a=index&id=1">Sách Khoa học</a>
-      </li>
-      <li>
-        <a href="?c=category&a=index&id=2">Sách Văn học</a>
-      </li>
-      <li>
-        <a href="?c=category&a=index&id=3">Sách Kinh tế</a>
-      </li>
-      <li>
-        <a href="?c=category&a=index&id=4">Sách Kỹ năng sống</a>
-      </li>
-      <li>
-        <a href="?c=category&a=index&id=5">Sách Thiếu nhi</a>
-      </li>
-      </ul>
-    </aside>
+      <li><a href="index.php?controller=category&action=index&id=1">Sách Khoa học</a></li>
+      <li><a href="index.php?controller=category&action=index&id=2">Sách Văn học</a></li>
+      <li><a href="index.php?controller=category&action=index&id=3">Sách Kinh tế</a></li>
+      <li><a href="index.php?controller=category&action=index&id=4">Sách Kỹ năng sống</a></li>
+      <li><a href="index.php?controller=category&action=index&id=5">Sách Thiếu nhi</a></li>
+    </ul>
+  </aside>
 
   <?php if (!empty($successMsg)): ?>
     <div id="serverSuccess" data-message="<?= htmlspecialchars($successMsg, ENT_QUOTES, 'UTF-8'); ?>"></div>
@@ -139,8 +139,8 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
   <footer class="footer">
     <div class="container grid footer-grid">
       <div>
-        <a class="brand foot" href="<?= $BASE; ?>/">
-          <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> Bo⊑kStore
+        <a class="brand foot" href="index.php?controller=home&action=index">
+          <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> Bookstore
         </a>
         <p class="muted">Hiệu sách online của bạn. Sách thật. Giá tốt. Giao nhanh.</p>
       </div>
@@ -155,9 +155,9 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
       <div>
         <h4>Thông tin</h4>
         <ul>
-          <li><a href="<?= $BASE; ?>/about">Về chúng tôi</a></li>
-          <li><a href="<?= $BASE; ?>/privacy">Chính sách bảo mật</a></li>
-          <li><a href="<?= $BASE; ?>/terms">Điều khoản sử dụng</a></li>
+          <li><a href="#">Về chúng tôi</a></li>
+          <li><a href="#">Chính sách bảo mật</a></li>
+          <li><a href="#">Điều khoản sử dụng</a></li>
         </ul>
       </div>
       <div>
@@ -172,17 +172,15 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
   </footer>
 
   <script>
-  // toast từ serverSuccess
- (function() {
+  (function() {
     var sel = document.getElementById('headerCatSelect');
     if (sel) {
       sel.addEventListener('change', function() {
         var catId = this.value;
         if (catId && catId !== 'all') {
-          window.location.href = '?c=category&a=index&id=' + catId;
+          window.location.href = 'index.php?controller=category&action=index&id=' + catId;
         } else if (catId === 'all') {
-          // SỬA Ở ĐÂY:
-          window.location.href = '?c=category&a=index'; // <-- Bỏ 'id' đi
+          window.location.href = 'index.php?controller=category&action=index';
         }
       });
     }

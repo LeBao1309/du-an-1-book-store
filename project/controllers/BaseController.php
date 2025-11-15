@@ -1,39 +1,34 @@
 <?php
-declare(strict_types=1);
 
 abstract class BaseController
 {
     protected function render(string $view, array $data = []): string
-    {
-        extract($data, EXTR_SKIP);
-        $viewFile = __DIR__ . '/../views/' . $view . '.php';
-        if (!file_exists($viewFile)) { http_response_code(500); return "View not found: {$view}"; }
-        
-        // --- SỬA ĐỔI: Thêm 5 dòng này để tạo biến $ASSET ---
-        $BASE = defined('BASE_URL') ? constant('BASE_URL') : '';
-        $ASSET = rtrim($BASE, '/');
-        if (!preg_match('~/public$~', $ASSET)) {
-            $ASSET .= '/public';
-        }
-        // --- KẾT THÚC SỬA ĐỔI ---
-
-        ob_start();
-        include $viewFile; // $ASSET giờ đã có sẵn trong view
-        $content = ob_get_clean();
-
-        // inject layout data
-        $currentUser = $_SESSION['user'] ?? null;
-        $flash = $_SESSION['flash'] ?? null; // ['type'=>'success|error','message'=>'...']
-        unset($_SESSION['flash']);
-
-        $layout = __DIR__ . '/../views/layouts/main.php';
-        if (file_exists($layout)) {
-            ob_start();
-            include $layout; // $ASSET cũng có sẵn trong layout
-            return ob_get_clean();
-        }
-        return $content;
+{
+    extract($data, EXTR_SKIP);
+    $viewFile = __DIR__ . '/../views/' . $view . '.php';
+    if (!file_exists($viewFile)) {
+        http_response_code(500);
+        return "View not found: {$view}";
     }
+
+    $ASSET = 'public';
+
+    ob_start();
+    include $viewFile;
+    $content = ob_get_clean();
+
+    $currentUser = $_SESSION['user'] ?? null;
+    $flash       = $_SESSION['flash'] ?? null;
+    unset($_SESSION['flash']);
+
+    $layout = __DIR__ . '/../views/layouts/main.php';
+    if (file_exists($layout)) {
+        ob_start();
+        include $layout;
+        return ob_get_clean();
+    }
+    return $content;
+}
 
     protected function redirect(string $url): void
     {
@@ -48,18 +43,26 @@ abstract class BaseController
 
     protected function requireAuth(): void
     {
-        if (empty($_SESSION['user'])) $this->redirect('?c=auth&a=login');
+        if (empty($_SESSION['user'])) {
+            $this->redirect('?controller=auth&action=login');
+        }
     }
 
     protected function csrfToken(): string
     {
-        if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(16));
+        if (empty($_SESSION['csrf'])) {
+            $_SESSION['csrf'] = bin2hex(random_bytes(16));
+        }
         return $_SESSION['csrf'];
     }
 
     protected function checkCsrf(): void
     {
-        $ok = isset($_POST['_csrf'], $_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $_POST['_csrf']);
-        if (!$ok) { http_response_code(400); exit('CSRF token invalid'); }
+        $ok = isset($_POST['_csrf'], $_SESSION['csrf'])
+            && hash_equals($_SESSION['csrf'], $_POST['_csrf']);
+        if (!$ok) {
+            http_response_code(400);
+            exit('CSRF token invalid');
+        }
     }
 }

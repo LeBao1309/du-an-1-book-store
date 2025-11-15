@@ -5,8 +5,8 @@
       <h1>There is nothing<br/>better than to read</h1>
       <p>Tìm món quà hoàn hảo cho mọi người trong danh sách của bạn.</p>
       <div class="hero-actions">
-        <a href="?c=home&a=index#category" class="btn btn-light">Mua ngay</a>
-        <a href="?c=home&a=index#explore" class="btn btn-ghost">Khám phá</a>
+      <a href="index.php?controller=home&action=index#category" class="btn btn-light">Mua ngay</a>
+      <a href="index.php?controller=home&action=index#explore" class="btn btn-ghost">Khám phá</a>
       </div>
     </div>
     <div class="hero-art">

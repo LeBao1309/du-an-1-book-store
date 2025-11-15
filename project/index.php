@@ -1,34 +1,55 @@
 <?php
-declare(strict_types=1);
-ini_set('display_errors','1'); error_reporting(E_ALL); session_start();
+session_start();
 
-// NẠP DATABASE NGAY TẠI ĐÂY
-// require_once __DIR__ . '/config/database.php'; // <-- SỬA: Đã vô hiệu hóa dòng này
+// NẠP BASECONTROLLER TRƯỚC
+require_once __DIR__ . '/controllers/BaseController.php';
 
-/** BASE_URL khi đặt ở /du-an-1-book-store/project */
-if (!defined('BASE_URL')) {
-  $base = rtrim(str_replace('\\','/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
-  define('BASE_URL', ($base === '' || $base === '/') ? '' : $base);
+// NẠP CÁC CONTROLLER ĐANG CÓ
+require_once __DIR__ . '/controllers/HomeController.php';
+require_once __DIR__ . '/controllers/CategoryController.php';
+require_once __DIR__ . '/controllers/AuthController.php';
+
+
+$controllerName = isset($_GET['controller']) ? strtolower($_GET['controller']) : 'home';
+$action         = isset($_GET['action']) ? strtolower($_GET['action']) : 'index';
+$id             = isset($_GET['id']) ? (int)$_GET['id'] : null;
+$slug           = isset($_GET['slug']) ? $_GET['slug'] : null;
+
+$controllerMap = [
+    'home'     => 'HomeController',
+    'category' => 'CategoryController',
+    'auth'     => 'AuthController',
+];
+
+if (!array_key_exists($controllerName, $controllerMap)) {
+    http_response_code(404);
+    echo "Controller không tồn tại";
+    exit;
 }
 
-/** Autoload controllers + models TRONG chính thư mục project/ */
-spl_autoload_register(function (string $class): void {
-  $class = str_replace('\\','/',$class);
-  foreach ([
-    __DIR__ . '/controllers/' . $class . '.php',
-    __DIR__ . '/models/'       . $class . '.php',
-  ] as $f) { if (is_file($f)) { require_once $f; return; } }
-});
+$className = $controllerMap[$controllerName];
 
-// ... (Phần còn lại của file giữ nguyên) ...
-$c = isset($_GET['c']) ? strtolower($_GET['c']) : 'home';
-$a = isset($_GET['a']) ? strtolower($_GET['a']) : 'index';
-if (!preg_match('/^[a-z][a-z0-9_]*$/',$c)) { http_response_code(400); exit('Invalid controller'); }
-if (!preg_match('/^[a-z][a-z0-9_]*$/',$a)) { http_response_code(400); exit('Invalid action'); }
+if (!class_exists($className)) {
+    http_response_code(404);
+    echo "Class {$className} không tồn tại";
+    exit;
+}
 
-$controllerClass = ucfirst($c) . 'Controller';
-if (!class_exists($controllerClass)) { http_response_code(404); exit("Controller not found: {$controllerClass}"); }
+$controller = new $className();
 
-$controller = new $controllerClass();
-if (!method_exists($controller,$a)) { http_response_code(404); exit("Action not found: {$a}"); }
-$out = $controller->$a(); if (is_string($out)) echo $out;
+if (!method_exists($controller, $action)) {
+    http_response_code(404);
+    echo "Action {$action} không tồn tại";
+    exit;
+}
+
+if ($slug !== null && $slug !== '') {
+    echo $controller->$action($slug);
+} elseif ($id !== null) {
+    echo $controller->$action($id);
+} else {
+    echo $controller->$action();
+}
+
+
+

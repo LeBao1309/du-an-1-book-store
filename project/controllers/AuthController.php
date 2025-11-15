@@ -1,6 +1,5 @@
 <?php
-declare(strict_types=1);
-
+require_once __DIR__ . '/../models/UserModel.php';
 final class AuthController extends BaseController
 {
     public function login(): string
@@ -11,8 +10,7 @@ final class AuthController extends BaseController
             $email = trim($_POST['email'] ?? '');
             $password = (string)($_POST['password'] ?? '');
 
-            $m = new UserModel();
-            $user = $m->findByEmail($email);
+            $user = UserModel::findByEmail($email);
 
             if ($user && (int)$user['is_active'] === 1 && password_verify($password, $user['password'])) {
                 $_SESSION['user'] = [
@@ -22,7 +20,7 @@ final class AuthController extends BaseController
                     'role' => $user['role'],
                 ];
                 $this->flash('success', 'Đăng nhập thành công');
-                $this->redirect('?c=home&a=index');            // ← về trang chủ sau đăng nhập
+                $this->redirect('?controller=home&action=index');           
             } else {
                 $error = 'Email/Mật khẩu không đúng hoặc tài khoản bị khóa';
             }
@@ -49,11 +47,11 @@ final class AuthController extends BaseController
                 $m = new UserModel();
                 if ($m->findByEmail($email)) $error = 'Email đã tồn tại';
                 else {
-                    $id = $m->create($name, $email, $password);
+                  $id = UserModel::create($name, $email, $password);
                     // auto login
                     $_SESSION['user'] = ['id'=>$id,'email'=>$email,'name'=>$name,'role'=>'user'];
                     $this->flash('success', 'Tạo tài khoản thành công. Chào mừng bạn!');
-                    $this->redirect('?c=home&a=index');       // ← về trang chủ sau đăng ký
+                    $this->redirect('?controller=home&action=index');       // ← về trang chủ sau đăng ký
                 }
             }
         }
@@ -65,7 +63,7 @@ final class AuthController extends BaseController
     {
         unset($_SESSION['user']);
         $this->flash('success', 'Đã đăng xuất');
-        $this->redirect('?c=home&a=index');
+        $this->redirect('?controller=home&action=index');
         return '';
     }
 }

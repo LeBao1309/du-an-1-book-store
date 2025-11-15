@@ -8,7 +8,7 @@
     <p class="form-message success"><?= htmlspecialchars($success) ?></p>
   <?php endif; ?>
 
-  <form action="?c=auth&a=login" method="POST" autocomplete="on">
+  <form action="index.php?controller=auth&action=login" method="POST" ...>
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
 
     <label for="email">Email</label>
@@ -21,5 +21,5 @@
   </form>
 
   <hr/>
-  <p>Chưa có tài khoản? <a href="?c=auth&a=register" style="color:var(--brand);">Đăng ký ngay</a></p>
+  <p>Chưa có tài khoản? <a href="index.php?controller=auth&action=register">Đăng ký ngay</a></p>
 </section>
