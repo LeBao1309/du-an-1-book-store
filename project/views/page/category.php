@@ -42,6 +42,12 @@
               >
                 Xem chi tiết
               </a>
+              <a href="index.php?controller=cart&action=add&id=<?= (int)$book['id'] ?>"
+                class="btn btn-outline-primary btn-sm mt-2"
+              >
+                Thêm vào giỏ
+              </a>
+
             </div>
           </div>
         </div>
