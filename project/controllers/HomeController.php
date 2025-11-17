@@ -1,12 +1,19 @@
 <?php
 
+// NẠP BOOKMODEL
+require_once __DIR__ . '/../models/BookModel.php';
+
 final class HomeController extends BaseController
 {
     public function index(): string
     {
-      $name = $_SESSION['user']['name'] ?? 'Khách';
-      $message = "Xin chào {$name}, chúc bạn một ngày tốt lành!";
-        return $this->render('page/index', compact('message'));
+      // Lấy 8 sản phẩm mới nhất
+      $newBooks = Book::getNewestProducts(8);
+      
+      // Chỉ truyền $newBooks ra view
+      return $this->render('page/index', [
+          'newBooks' => $newBooks
+      ]);
     }
 
     public function profile(): string
