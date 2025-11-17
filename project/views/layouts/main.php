@@ -5,6 +5,14 @@ $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
 // Đường dẫn asset tương đối (từ index.php)
 $ASSET = 'public';
 
+// Đếm số lượng sản phẩm trong giỏ
+$cart      = $_SESSION['cart'] ?? [];
+$cartCount = 0;
+foreach ($cart as $item) {
+    $cartCount += (int)($item['quantity'] ?? 0);
+}
+
+
 // Xác định danh mục đang được chọn (dùng cho select)
 $currentCatId = 'all';
 if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
@@ -87,9 +95,12 @@ if ($currentCatId === 0) {
              title="Tài khoản">👤</a>
         <?php endif; ?>
 
-        <!-- Cart: tạm thời để # -->
-        <a href="#cart" class="nav-icon cart" title="Giỏ hàng">
-          <span>🛒</span><i class="badge" id="cartBadge">0</i>
+        <!-- Giỏ hàng -->
+        <a href="index.php?controller=cart&action=index" class="nav-icon cart" title="Giỏ hàng">
+          <span>🛒</span>
+          <i class="badge" id="cartBadge">
+            <?= (int)$cartCount ?>
+          </i>
         </a>
       </nav>
     </div>
