@@ -65,15 +65,7 @@ if ($currentCatId === 0) {
       </a>
 
       <div class="search">
-        <!-- Select danh mục -->
-        <select class="cat-select" aria-label="Chọn danh mục" id="headerCatSelect">
-          <option value="all" <?= $currentCatId === 'all' ? 'selected' : '' ?>>Tất cả danh mục</option>
-          <option value="1" <?= $currentCatId === 1 ? 'selected' : '' ?>>Sách Khoa học</option>
-          <option value="2" <?= $currentCatId === 2 ? 'selected' : '' ?>>Sách Văn học</option>
-          <option value="3" <?= $currentCatId === 3 ? 'selected' : '' ?>>Sách Kinh tế</option>
-          <option value="4" <?= $currentCatId === 4 ? 'selected' : '' ?>>Sách Kỹ năng sống</option>
-          <option value="5" <?= $currentCatId === 5 ? 'selected' : '' ?>>Sách Thiếu nhi</option>
-        </select>
+        
 
         <input type="text" placeholder="Tìm kiếm sách, tác giả..." />
         <button class="btn" id="btnSearch">Tìm</button>
@@ -171,20 +163,5 @@ if ($currentCatId === 0) {
     <div class="copy">© <?= date('Y'); ?> WiseDecision Bookstore</div>
   </footer>
 
-  <script>
-  (function() {
-    var sel = document.getElementById('headerCatSelect');
-    if (sel) {
-      sel.addEventListener('change', function() {
-        var catId = this.value;
-        if (catId && catId !== 'all') {
-          window.location.href = 'index.php?controller=category&action=index&id=' + catId;
-        } else if (catId === 'all') {
-          window.location.href = 'index.php?controller=category&action=index';
-        }
-      });
-    }
-  })();
-  </script>
 </body>
 </html>

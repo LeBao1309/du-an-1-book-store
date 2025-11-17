@@ -3,8 +3,36 @@
 require_once __DIR__ . '/BaseModel.php';
 class Book extends BaseModel {
     
-    public static function getByCategory($categoryId) {
-        // Sửa 2: Bỏ 'global $conn', dùng 'self::db()' (PDO)
+    // === HÀM MỚI 3: LẤY SẢN PHẨM MỚI CHO TRANG CHỦ ===
+    public static function getNewestProducts($limit = 8) {
+        $sql = "SELECT b.id, b.title, 
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id
+                GROUP BY b.id, b.title
+                ORDER BY b.id DESC
+                LIMIT ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    // === HẾT HÀM MỚI ===
+
+
+    // === HÀM MỚI 1: Đếm sách theo danh mục ===
+    public static function countByCategory($categoryId) {
+        $sql = "SELECT COUNT(id) FROM books WHERE category_id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$categoryId]);
+        return $stmt->fetchColumn(); 
+    }
+
+    // === HÀM CŨ (ĐÃ SỬA) ===
+    public static function getByCategory($categoryId, $limit, $offset) {
         $sql = "SELECT b.id, b.title, 
                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
                        MIN(i.image_url) as image_url
@@ -12,34 +40,59 @@ class Book extends BaseModel {
                 LEFT JOIN book_variants v ON v.book_id = b.id
                 LEFT JOIN book_images i ON i.book_id = b.id
                 WHERE b.category_id = ?
-                GROUP BY b.id, b.title";
+                GROUP BY b.id, b.title
+                LIMIT ? OFFSET ?";
         
         $stmt = self::db()->prepare($sql);
-        // Sửa 3: execute kiểu PDO
-        $stmt->execute([$categoryId]); 
-        // Sửa 4: fetchAll kiểu PDO (BaseModel đã set FETCH_ASSOC)
+
+        // === SỬA Ở ĐÂY ===
+        // Chúng ta bind (gán) từng dấu ? một
+        $stmt->bindValue(1, $categoryId); // Dấu ? thứ 1
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2 (chỉ rõ là SỐ)
+        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3 (chỉ rõ là SỐ)
+        $stmt->execute(); 
+        // === HẾT SỬA ===
+
         return $stmt->fetchAll(); 
     }
 
-    public static function getAll() {
+    // === HÀM MỚI 2: Đếm tất cả sách ===
+    public static function countAll() {
+        $sql = "SELECT COUNT(id) FROM books";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    // === HÀM CŨ (ĐÃ SỬA) ===
+    public static function getAll($limit, $offset) {
         $sql = "SELECT b.id, b.title, 
                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
                        MIN(i.image_url) as image_url
                 FROM books b
                 LEFT JOIN book_variants v ON v.book_id = b.id
                 LEFT JOIN book_images i ON i.book_id = b.id
-                GROUP BY b.id, b.title";
+                GROUP BY b.id, b.title
+                LIMIT ? OFFSET ?";
         
         $stmt = self::db()->prepare($sql);
+
+        // === SỬA Ở ĐÂY (Dòng 57 cũ của bạn) ===
+        // Chúng ta bind (gán) từng dấu ? một
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 1 (chỉ rõ là SỐ)
+        $stmt->bindValue(2, $offset, \PDO::PARAM_INT); // Dấu ? thứ 2 (chỉ rõ là SỐ)
         $stmt->execute();
+        // === HẾT SỬA ===
+
         return $stmt->fetchAll();
     }
 
+    // (Các hàm còn lại giữ nguyên)
     public static function findById($id) {
         $sql = "SELECT * FROM books WHERE id = ?";
         $stmt = self::db()->prepare($sql);
         $stmt->execute([$id]);
-        return $stmt->fetch(); // Sửa: fetch() cho 1 dòng
+        return $stmt->fetch();
     }
 
     public static function getVariants($bookId) {
