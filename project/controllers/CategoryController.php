@@ -10,33 +10,51 @@ class CategoryController extends BaseController
 {
     public function index(int $categoryId = 0): string
     {
-        // ... (Code logic phân trang của bạn) ...
+        $searchQuery = trim($_GET['q'] ?? '');
+
+        // === THÊM MỚI (1): ĐỌC VÀ LỌC GIÁ TRỊ SẮP XẾP ===
+        $sort = $_GET['sort'] ?? 'newest';
+        $validSorts = ['newest', 'price-asc', 'price-desc'];
+        if (!in_array($sort, $validSorts)) {
+            $sort = 'newest';
+        }
+        // === HẾT THÊM MỚI (1) ===
+
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         if ($page < 1) $page = 1;
         $limit = 9; 
         $offset = ($page - 1) * $limit;
 
-        // === SỬA Ở ĐÂY ===
-        // Khai báo $totalBooks ở ngoài để có thể dùng chung
         $totalBooks = 0; 
         
-        if ($categoryId > 0) {
+        if ($searchQuery !== '') {
+            $category = [
+                'name' => 'Kết quả tìm kiếm cho "' . htmlspecialchars($searchQuery) . '"', 
+                'id' => 0 
+            ];
+            $totalBooks = Book::countByTitle($searchQuery);
+            // === SỬA (2): TRUYỀN $sort VÀO HÀM ===
+            $books = Book::searchByTitle($searchQuery, $limit, $offset, $sort); 
+
+        } elseif ($categoryId > 0) {
             $category = Category::find($categoryId);
             if (!$category) { 
                 http_response_code(404);
                 return $this->render('page/404'); 
             }
-            $totalBooks = Book::countByCategory($categoryId); // Gán giá trị
-            $books = Book::getByCategory($categoryId, $limit, $offset);
+            $totalBooks = Book::countByCategory($categoryId); 
+            // === SỬA (3): TRUYỀN $sort VÀO HÀM ===
+            $books = Book::getByCategory($categoryId, $limit, $offset, $sort);
+
         } else {
             $category = ['name' => 'Tất cả sản phẩm', 'id' => 0]; 
-            $totalBooks = Book::countAll(); // Gán giá trị
-            $books = Book::getAll($limit, $offset); 
+            $totalBooks = Book::countAll(); 
+            // === SỬA (4): TRUYỀN $sort VÀO HÀM ===
+            $books = Book::getAll($limit, $offset, $sort); 
         }
 
         $totalPages = ceil($totalBooks / $limit);
         if ($totalPages == 0) $totalPages = 1;
-        // ... (code kiểm tra $page > $totalPages) ...
 
         $allCategories = Category::getAll(); 
         $publishers = []; 
@@ -48,7 +66,9 @@ class CategoryController extends BaseController
             'publishers' => $publishers,
             'page' => $page,
             'totalPages' => $totalPages,
-            'totalBooks' => $totalBooks // <-- TRUYỀN BIẾN NÀY RA VIEW
+            'totalBooks' => $totalBooks,
+            'searchQuery' => $searchQuery,
+            'sort' => $sort // <-- THÊM MỚI (5): TRUYỀN $sort RA VIEW
         ]);
     }
 }

@@ -258,3 +258,29 @@ input.text{border:1px solid var(--line);border-radius:8px;padding:8px}
   /* Khi hover vào card, đưa footer về vị trí 0 (trượt lên) */
   transform: translateY(0);
 }
+/* ========================================================================= */
+/* ===== Cập nhật màu sắc cho Pagination (phân trang) - MÀU XANH TEAL ===== */
+/* ========================================================================= */
+
+.pagination .page-item.active .page-link {
+    background-color: #20c997; /* Màu xanh lá/teal chủ đạo cho nút active */
+    border-color: #20c997;     /* Viền cùng màu */
+    color: #fff;               /* Chữ màu trắng */
+}
+
+.pagination .page-link {
+    color: #20c997; /* Màu xanh lá/teal chủ đạo cho chữ của nút không active */
+    border: 1px solid #dee2e6; /* Viền xám nhạt */
+}
+
+.pagination .page-link:hover {
+    background-color: #d1f4ee; /* Màu nền nhạt hơn khi hover (hoặc #1aa07a) */
+    border-color: #1aa07a;     /* Viền xanh đậm hơn khi hover */
+    color: #1aa07a;            /* Màu chữ xanh đậm hơn khi hover */
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d; /* Màu chữ xám cho nút bị disable */
+    background-color: #fff;
+    border-color: #dee2e6;
+}
