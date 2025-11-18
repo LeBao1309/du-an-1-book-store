@@ -23,6 +23,49 @@ class Book extends BaseModel {
     // === HẾT HÀM MỚI ===
 
 
+    // === HÀM ĐÃ SỬA (THÊM $sort) ===
+    public static function searchByTitle($query, $limit, $offset, $sort = 'newest') {
+        $searchTerm = '%' . $query . '%'; 
+
+        // Logic Sắp xếp
+        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
+        if ($sort === 'price-asc') {
+            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
+        } elseif ($sort === 'price-desc') {
+            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
+        }
+
+        $sql = "SELECT b.id, b.title, 
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id
+                WHERE b.title LIKE ?
+                GROUP BY b.id, b.title
+                $orderBy
+                LIMIT ? OFFSET ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $searchTerm); // Dấu ? thứ 1
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2
+        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3
+        $stmt->execute(); 
+        return $stmt->fetchAll(); 
+    }
+
+    // === HÀM MỚI (CHO TÌM KIẾM): ĐẾM SỐ SÁCH THEO TÊN (cho phân trang) ===
+    public static function countByTitle($query) {
+        $searchTerm = '%' . $query . '%'; // Thêm dấu % cho SQL LIKE
+
+        $sql = "SELECT COUNT(id) FROM books WHERE title LIKE ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $searchTerm);
+        $stmt->execute();
+        return $stmt->fetchColumn(); 
+    }
+
+
     // === HÀM MỚI 1: Đếm sách theo danh mục ===
     public static function countByCategory($categoryId) {
         $sql = "SELECT COUNT(id) FROM books WHERE category_id = ?";
@@ -31,8 +74,17 @@ class Book extends BaseModel {
         return $stmt->fetchColumn(); 
     }
 
-    // === HÀM CŨ (ĐÃ SỬA) ===
-    public static function getByCategory($categoryId, $limit, $offset) {
+    // === HÀM CŨ (ĐÃ SỬA - THÊM $sort) ===
+    public static function getByCategory($categoryId, $limit, $offset, $sort = 'newest') {
+        
+        // Logic Sắp xếp
+        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
+        if ($sort === 'price-asc') {
+            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
+        } elseif ($sort === 'price-desc') {
+            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
+        }
+
         $sql = "SELECT b.id, b.title, 
                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
                        MIN(i.image_url) as image_url
@@ -41,17 +93,15 @@ class Book extends BaseModel {
                 LEFT JOIN book_images i ON i.book_id = b.id
                 WHERE b.category_id = ?
                 GROUP BY b.id, b.title
+                $orderBy
                 LIMIT ? OFFSET ?";
         
         $stmt = self::db()->prepare($sql);
 
-        // === SỬA Ở ĐÂY ===
-        // Chúng ta bind (gán) từng dấu ? một
         $stmt->bindValue(1, $categoryId); // Dấu ? thứ 1
-        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2 (chỉ rõ là SỐ)
-        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3 (chỉ rõ là SỐ)
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2
+        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3
         $stmt->execute(); 
-        // === HẾT SỬA ===
 
         return $stmt->fetchAll(); 
     }
@@ -64,8 +114,17 @@ class Book extends BaseModel {
         return $stmt->fetchColumn();
     }
 
-    // === HÀM CŨ (ĐÃ SỬA) ===
-    public static function getAll($limit, $offset) {
+    // === HÀM CŨ (ĐÃ SỬA - THÊM $sort) ===
+    public static function getAll($limit, $offset, $sort = 'newest') {
+
+        // Logic Sắp xếp
+        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
+        if ($sort === 'price-asc') {
+            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
+        } elseif ($sort === 'price-desc') {
+            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
+        }
+
         $sql = "SELECT b.id, b.title, 
                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
                        MIN(i.image_url) as image_url
@@ -73,16 +132,14 @@ class Book extends BaseModel {
                 LEFT JOIN book_variants v ON v.book_id = b.id
                 LEFT JOIN book_images i ON i.book_id = b.id
                 GROUP BY b.id, b.title
+                $orderBy
                 LIMIT ? OFFSET ?";
         
         $stmt = self::db()->prepare($sql);
 
-        // === SỬA Ở ĐÂY (Dòng 57 cũ của bạn) ===
-        // Chúng ta bind (gán) từng dấu ? một
-        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 1 (chỉ rõ là SỐ)
-        $stmt->bindValue(2, $offset, \PDO::PARAM_INT); // Dấu ? thứ 2 (chỉ rõ là SỐ)
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 1
+        $stmt->bindValue(2, $offset, \PDO::PARAM_INT); // Dấu ? thứ 2
         $stmt->execute();
-        // === HẾT SỬA ===
 
         return $stmt->fetchAll();
     }

@@ -2,10 +2,11 @@
 // Các biến này sẽ được truyền từ Controller
 $allCategories = $allCategories ?? [];
 $publishers = $publishers ?? []; 
-// $genres đã bị xóa
 $page = $page ?? 1;
 $totalPages = $totalPages ?? 1;
 $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
+$searchQuery = $searchQuery ?? ''; // Lấy từ khóa tìm kiếm
+$sort = $sort ?? 'newest'; // Lấy kiểu sắp xếp
 ?>
 
 <div class="container mt-5">
@@ -20,7 +21,7 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
             <?php foreach ($allCategories as $cat): ?>
               <li>
                 <a href="index.php?controller=category&action=index&id=<?= (int)$cat['id'] ?>"
-                   class="<?= (int)$cat['id'] === $currentCatId ? 'active' : '' ?>">
+                   class="<?= (int)$cat['id'] === $currentCatId && $searchQuery === '' ? 'active' : '' ?>">
                   <?= htmlspecialchars($cat['name']) ?>
                 </a>
               </li>
@@ -29,7 +30,7 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
           
           <li class="mt-2">
             <a href="index.php?controller=category&action=index&id=0"
-               class="<?= $currentCatId === 0 ? 'active' : '' ?>">
+               class="<?= $currentCatId === 0 && $searchQuery === '' ? 'active' : '' ?>">
               Xem tất cả sản phẩm
             </a>
           </li>
@@ -52,12 +53,26 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
         <h2 class="h4 mb-0">
           <?= htmlspecialchars($category['name'] ?? 'Tất cả sản phẩm') ?>
         </h2>
-        <select class="form-select w-auto" aria-label="Sắp xếp">
-          <option value="newest" selected>Sắp xếp: Mới nhất</option>
-          <option value="price-asc">Giá: Thấp đến Cao</option>
-          <option value="price-desc">Giá: Cao đến Thấp</option>
-        </select>
-      </div>
+        
+        <form method="GET" action="index.php">
+            <input type="hidden" name="controller" value="category">
+            <input type="hidden" name="action" value="index">
+            <input type="hidden" name="id" value="<?= $currentCatId ?>">
+            <input type="hidden" name="q" value="<?= htmlspecialchars($searchQuery) ?>">
+
+            <select name="sort" class="form-select w-auto" aria-label="Sắp xếp" onchange="this.form.submit()">
+              <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>
+                Sắp xếp: Mới nhất
+              </option>
+              <option value="price-asc" <?= $sort === 'price-asc' ? 'selected' : '' ?>>
+                Giá: Thấp đến Cao
+              </option>
+              <option value="price-desc" <?= $sort === 'price-desc' ? 'selected' : '' ?>>
+                Giá: Cao đến Thấp
+              </option>
+            </select>
+        </form>
+        </div>
 
       <div class="row">
         <?php if (!empty($books)): ?>
@@ -103,7 +118,6 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
                     <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>" class="btn btn-sm btn-outline-dark w-100">
                       Xem chi tiết
                     </a>
-            <!-- Đổi nút giỏ hàng sang form + button PHP -->
                 <form method="get" action="index.php" class="w-100 m-0">
                   <input type="hidden" name="controller" value="cart">
                   <input type="hidden" name="action" value="add">
@@ -126,9 +140,23 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
       <nav class="mt-4" aria-label="Phân trang">
         <ul class="pagination justify-content-center">
           
+          <?php
+            // Tạo chuỗi tham số URL cơ bản
+            if ($searchQuery !== '') {
+                // Nếu đang tìm kiếm, dùng 'q'
+                $pageParams = "controller=category&action=index&q=" . urlencode($searchQuery);
+            } else {
+                // Nếu không, dùng 'id'
+                $pageParams = "controller=category&action=index&id=$currentCatId";
+            }
+            
+            // Luôn thêm tham số 'sort' vào
+            $pageParams .= "&sort=" . urlencode($sort);
+          ?>
+
           <?php if ($page > 1): ?>
             <li class="page-item">
-              <a class="page-link" href="?controller=category&action=index&id=<?= $currentCatId ?>&page=<?= $page - 1 ?>">&laquo;</a>
+              <a class="page-link" href="?<?= $pageParams ?>&page=<?= $page - 1 ?>">&laquo;</a>
             </li>
           <?php else: ?>
             <li class="page-item disabled">
@@ -138,7 +166,7 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
 
           <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-              <a class="page-link" href="?controller=category&action=index&id=<?= $currentCatId ?>&page=<?= $i ?>">
+              <a class="page-link" href="?<?= $pageParams ?>&page=<?= $i ?>">
                 <?= $i ?>
               </a>
             </li>
@@ -146,7 +174,7 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
 
           <?php if ($page < $totalPages): ?>
             <li class="page-item">
-              <a class="page-link" href="?controller=category&action=index&id=<?= $currentCatId ?>&page=<?= $page + 1 ?>">&raquo;</a>
+              <a class="page-link" href="?<?= $pageParams ?>&page=<?= $page + 1 ?>">&raquo;</a>
             </li>
           <?php else: ?>
             <li class="page-item disabled">
@@ -156,7 +184,6 @@ $currentCatId = $category['id'] ?? 0; // ID của danh mục đang xem
 
         </ul>
       </nav>
-
-    </main>
+      </main>
   </div>
 </div>

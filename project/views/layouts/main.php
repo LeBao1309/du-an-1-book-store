@@ -32,7 +32,6 @@ if ($currentCatId === 0) {
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- CSS của project (tương đối) -->
   <link rel="stylesheet" href="<?= $ASSET; ?>/css/styles.css" />
 
   <style>
@@ -67,18 +66,24 @@ if ($currentCatId === 0) {
 
   <header class="header">
     <div class="container header-inner">
-      <!-- Logo / Trang chủ -->
       <a class="brand" href="index.php?controller=home&action=index">
         <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> BookStore
       </a>
 
-      <div class="search">
+      <form class="search" method="GET" action="index.php">
         
+        <input type="hidden" name="controller" value="category">
+        <input type="hidden" name="action" value="index">
 
-        <input type="text" placeholder="Tìm kiếm sách, tác giả..." />
-        <button class="btn" id="btnSearch">Tìm</button>
-      </div>
-
+        <input type="text" 
+               name="q" 
+               placeholder="Tìm kiếm sách, tác giả..." 
+               value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" 
+               autocomplete="off" />
+        
+        <button class="btn" type="submit">Tìm</button>
+      
+      </form>
       <nav class="actions">
         <a href="#" class="nav-icon" title="Yêu thích">❤</a>
 
@@ -95,7 +100,6 @@ if ($currentCatId === 0) {
              title="Tài khoản">👤</a>
         <?php endif; ?>
 
-        <!-- Giỏ hàng -->
         <a href="index.php?controller=cart&action=index" class="nav-icon cart" title="Giỏ hàng">
           <span>🛒</span>
           <i class="badge" id="cartBadge">
