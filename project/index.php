@@ -9,6 +9,9 @@ require_once __DIR__ . '/controllers/HomeController.php';
 require_once __DIR__ . '/controllers/CategoryController.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/CartController.php';
+require_once __DIR__ . '/controllers/BookController.php';
+require_once __DIR__ . '/controllers/ProductController.php';
+
 
 
 $controllerName = isset($_GET['controller']) ? strtolower($_GET['controller']) : 'home';
@@ -21,6 +24,8 @@ $controllerMap = [
     'category' => 'CategoryController',
     'auth'     => 'AuthController',
     'cart'     => 'CartController', 
+    'book'     => 'BookController',
+    'product'  => 'ProductController',
 ];
 
 if (!array_key_exists($controllerName, $controllerMap)) {
