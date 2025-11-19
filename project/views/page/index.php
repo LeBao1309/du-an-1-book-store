@@ -92,16 +92,11 @@ $newBooks = $newBooks ?? [];
               <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>" class="btn btn-sm btn-outline-dark w-100">
                 Xem chi tiết
               </a>
-<!-- Đổi nút giỏ hàng sang form + button PHP -->
-          <form method="get" action="index.php" class="w-100 m-0">
-            <input type="hidden" name="controller" value="cart">
-            <input type="hidden" name="action" value="add">
-            <input type="hidden" name="id" value="<?= (int)$book['id'] ?>">
-
-            <button type="submit" class="btn btn-sm btn-primary w-100">
-              Thêm vào giỏ
-            </button>
-          </form>
+              <a href="#" 
+                 class="btn btn-sm btn-primary w-100" 
+                 onclick="alert('Chức năng Thêm vào giỏ hàng sẽ được xử lý sau!'); return false;">
+                Thêm vào giỏ
+              </a>
             </div>
           </div>
 
