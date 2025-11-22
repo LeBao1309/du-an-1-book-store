@@ -227,19 +227,16 @@ CREATE TABLE order_items (
 -- ===============================================================
 -- 14. BẢNG PAYMENT (THANH TOÁN)
 -- ===============================================================
+DROP TABLE IF EXISTS payment;
+
 CREATE TABLE payment (
-                         id INT AUTO_INCREMENT PRIMARY KEY,
-                         order_id INT NOT NULL,
-                         amount DECIMAL(10,2) NOT NULL,
-                         payment_method ENUM('cod', 'card', 'wallet') NOT NULL,
-                         payment_status ENUM('pending', 'paid', 'failed') DEFAULT 'pending',
-                         transaction_code VARCHAR(255) NULL,
-                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                         UNIQUE KEY uk_order_id (order_id) COMMENT 'Mỗi đơn hàng chỉ có 1 thanh toán',
-                         CONSTRAINT fk_payment_order
-                             FOREIGN KEY (order_id) REFERENCES orders(id)
-                                 ON DELETE CASCADE
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  payment_method ENUM('cod', 'card', 'wallet') NOT NULL,
+  UNIQUE KEY uk_order (order_id),
+  CONSTRAINT fk_payment_order
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+      ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE book_images (

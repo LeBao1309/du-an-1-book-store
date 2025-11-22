@@ -11,6 +11,7 @@ require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/CartController.php';
 require_once __DIR__ . '/controllers/BookController.php';
 require_once __DIR__ . '/controllers/ProductController.php';
+require_once __DIR__ . '/controllers/AccountController.php';
 
 
 
@@ -26,6 +27,7 @@ $controllerMap = [
     'cart'     => 'CartController', 
     'book'     => 'BookController',
     'product'  => 'ProductController',
+    'account'  => 'AccountController',
 ];
 
 if (!array_key_exists($controllerName, $controllerMap)) {
