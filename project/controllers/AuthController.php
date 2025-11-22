@@ -48,10 +48,9 @@ final class AuthController extends BaseController
                 if ($m->findByEmail($email)) $error = 'Email đã tồn tại';
                 else {
                   $id = UserModel::create($name, $email, $password);
-                    // auto login
                     $_SESSION['user'] = ['id'=>$id,'email'=>$email,'name'=>$name,'role'=>'user'];
                     $this->flash('success', 'Tạo tài khoản thành công. Chào mừng bạn!');
-                    $this->redirect('?controller=home&action=index');       // ← về trang chủ sau đăng ký
+                    $this->redirect('?controller=home&action=index');
                 }
             }
         }

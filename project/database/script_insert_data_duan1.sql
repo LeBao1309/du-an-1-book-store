@@ -135,3 +135,198 @@ INSERT INTO `book_images` (`id`, `book_id`, `image_url`, `sort_order`) VALUES
 (28, 28, 'img/28.png', 1),
 (29, 29, 'img/29.png', 1),
 (30, 30, 'img/30.png', 1);
+
+-- ===============================================================
+-- DATA MẪU BỔ SUNG (authors, publisher, users, address, orders, ...)
+-- Chạy SAU script_insert_data_duan1.sql hiện tại
+-- Password mẫu cho user: 123456
+-- ===============================================================
+
+    use du_an_1_book_store;
+-- 1) AUTHORS
+INSERT INTO authors (id, name, slug) VALUES
+(1, 'Stephen Hawking', 'stephen-hawking'),
+(2, 'Paulo Coelho', 'paulo-coelho'),
+(3, 'Haruki Murakami', 'haruki-murakami'),
+(4, 'Nguyễn Nhật Ánh', 'nguyen-nhat-anh'),
+(5, 'Dale Carnegie', 'dale-carnegie'),
+(6, 'Napoleon Hill', 'napoleon-hill'),
+(7, 'Adam Smith', 'adam-smith'),
+(8, 'Karl Marx', 'karl-marx'),
+(9, 'J.K. Rowling', 'jk-rowling'),
+(10, 'Fyodor Dostoevsky', 'fyodor-dostoevsky');
+
+-- 2) PUBLISHER
+INSERT INTO publisher (id, name, slug) VALUES
+(1, 'NXB Trẻ', 'nxb-tre'),
+(2, 'NXB Kim Đồng', 'nxb-kim-dong'),
+(3, 'NXB Lao Động', 'nxb-lao-dong'),
+(4, 'NXB Nhã Nam', 'nxb-nha-nam'),
+(5, 'NXB Tổng Hợp', 'nxb-tong-hop');
+
+-- 3) BOOK_AUTHORS (N-N)
+INSERT INTO book_authors (id, book_id, author_id) VALUES
+(1, 1, 1),
+(2, 2, 1),
+(3, 3, 7),
+(4, 4, 7),
+(5, 5, 1),
+(6, 6, 1),
+(7, 7, 2),
+(8, 8, 5),
+(9, 9, 3),
+(10, 10, 6),
+(11, 11, 2),
+(12, 12, 10),
+(13, 13, 7),
+(14, 14, 8),
+(15, 15, 6),
+(16, 16, 6),
+(17, 17, 3),
+(18, 18, 7),
+(19, 19, 5),
+(20, 20, 4),
+(21, 21, 5),
+(22, 22, 5),
+(23, 23, 5),
+(24, 24, 5),
+(25, 25, 4),
+(26, 26, 4),
+(27, 27, 4),
+(28, 28, 9),
+(29, 29, 4),
+(30, 30, 4);
+
+-- 4) BOOK_PUBLISHER (mỗi sách 1 NXB)
+INSERT INTO book_publisher (id, book_id, publisher_id) VALUES
+(1, 1, 1),
+(2, 2, 1),
+(3, 3, 1),
+(4, 4, 1),
+(5, 5, 1),
+(6, 6, 1),
+(7, 7, 4),
+(8, 8, 4),
+(9, 9, 4),
+(10, 10, 4),
+(11, 11, 4),
+(12, 12, 4),
+(13, 13, 1),
+(14, 14, 1),
+(15, 15, 1),
+(16, 16, 1),
+(17, 17, 1),
+(18, 18, 1),
+(19, 19, 1),
+(20, 20, 1),
+(21, 21, 1),
+(22, 22, 1),
+(23, 23, 1),
+(24, 24, 1),
+(25, 25, 2),
+(26, 26, 2),
+(27, 27, 2),
+(28, 28, 2),
+(29, 29, 2),
+(30, 30, 2);
+
+
+-- 5) USERS
+-- bcrypt cho password 123456 (PHP password_verify dùng được)
+INSERT INTO users (id, name, email, password, role, is_active) VALUES
+(1, 'Lê Quang Gia Bảo', 'lbaol1309@gmail.com', '$2y$10$H9EJpWM18r4.KpV7H5ZoeONIAVhYoifdaP.4KvaRxXuJJm9t46xLe', 'user', 1),
+(2, 'Lê Quang Gia Bảo', 'lbaol13091@gmail.com', '$2y$10$0IOmHi0MAwZmAg66jkAHEe8Ful.um7I1AF3SDU2AfhOO5ewC8RZzq', 'user', 1),
+(3, 'Trần Thị B', 'b@wise.local', '$2y$10$pjC161ShZr1Fkj711onlB.zP45o22OFL2/EpgUdnYyqV6zFHPcAHW', 'user', 1),
+(4, 'Lê Văn C', 'c@wise.local', '$2y$10$pjC161ShZr1Fkj711onlB.zP45o22OFL2/EpgUdnYyqV6zFHPcAHW', 'user', 1),
+(5, 'Phạm Thị D', 'd@wise.local', '$2y$10$pjC161ShZr1Fkj711onlB.zP45o22OFL2/EpgUdnYyqV6zFHPcAHW', 'user', 1);
+
+-- 6) USER_ADDRESS (>=2 địa chỉ / user)
+INSERT INTO user_address (id, user_id, full_address, shipping_phone, is_default) VALUES
+(1, 2, '12 Nguyễn Trãi, Q1, TP.HCM', '0909000001', 1),
+(2, 2, '45 Lê Lợi, Q1, TP.HCM', '0909000002', 0),
+(3, 3, '88 Điện Biên Phủ, Bình Thạnh, TP.HCM', '0909000003', 1),
+(4, 3, '102 Phan Xích Long, Phú Nhuận, TP.HCM', '0909000004', 0),
+(5, 4, '15 Trần Hưng Đạo, Đà Nẵng', '0909000005', 1),
+(6, 4, '200 Nguyễn Văn Linh, Đà Nẵng', '0909000006', 0),
+(7, 5, '33 Võ Thị Sáu, Hà Nội', '0909000007', 1),
+(8, 5, '77 Xuân Thủy, Cầu Giấy, Hà Nội', '0909000008', 0);
+
+-- 7) COMMENTS (review mẫu)
+INSERT INTO comments (id, book_id, user_id, content, rating) VALUES
+(1, 1, 2, 'Nhận xét mẫu cho sách 1 bởi user 2', 4),
+(2, 1, 3, 'Nhận xét mẫu cho sách 1 bởi user 3', 4),
+(3, 1, 4, 'Nhận xét mẫu cho sách 1 bởi user 4', 3),
+(4, 2, 2, 'Nhận xét mẫu cho sách 2 bởi user 2', 4),
+(5, 2, 3, 'Nhận xét mẫu cho sách 2 bởi user 3', 5),
+(6, 2, 4, 'Nhận xét mẫu cho sách 2 bởi user 4', 4),
+(7, 7, 2, 'Nhận xét mẫu cho sách 7 bởi user 2', 4),
+(8, 7, 3, 'Nhận xét mẫu cho sách 7 bởi user 3', 4),
+(9, 7, 4, 'Nhận xét mẫu cho sách 7 bởi user 4', 4),
+(10, 9, 2, 'Nhận xét mẫu cho sách 9 bởi user 2', 5),
+(11, 9, 3, 'Nhận xét mẫu cho sách 9 bởi user 3', 3),
+(12, 9, 4, 'Nhận xét mẫu cho sách 9 bởi user 4', 5),
+(13, 15, 2, 'Nhận xét mẫu cho sách 15 bởi user 2', 3),
+(14, 15, 3, 'Nhận xét mẫu cho sách 15 bởi user 3', 4),
+(15, 15, 4, 'Nhận xét mẫu cho sách 15 bởi user 4', 3),
+(16, 19, 2, 'Nhận xét mẫu cho sách 19 bởi user 2', 3),
+(17, 19, 3, 'Nhận xét mẫu cho sách 19 bởi user 3', 5),
+(18, 19, 4, 'Nhận xét mẫu cho sách 19 bởi user 4', 4),
+(19, 25, 2, 'Nhận xét mẫu cho sách 25 bởi user 2', 4),
+(20, 25, 3, 'Nhận xét mẫu cho sách 25 bởi user 3', 5),
+(21, 25, 4, 'Nhận xét mẫu cho sách 25 bởi user 4', 3),
+(22, 28, 2, 'Nhận xét mẫu cho sách 28 bởi user 2', 5),
+(23, 28, 3, 'Nhận xét mẫu cho sách 28 bởi user 3', 4),
+(24, 28, 4, 'Nhận xét mẫu cho sách 28 bởi user 4', 4);
+
+-- 8) WISHLIST
+INSERT INTO wishlist (id, book_id, user_id) VALUES
+(1, 7, 2),
+(2, 15, 2),
+(3, 19, 2),
+(4, 1, 3),
+(5, 2, 3),
+(6, 25, 3),
+(7, 9, 4),
+(8, 28, 4);
+
+-- 9) ORDERS (snapshot địa chỉ)
+INSERT INTO orders (id, user_id, user_address_id, total, shipping_status, shipping_address, shipping_phone, note) VALUES
+(1, 2, 1, 360000.00, 'delivered', '12 Nguyễn Trãi, Q1, TP.HCM', '0909000001', 'Giao giờ hành chính'),
+(2, 3, 3, 412000.00, 'shipped', '88 Điện Biên Phủ, Bình Thạnh, TP.HCM', '0909000003', NULL),
+(3, 2, 2, 298000.00, 'processing', '45 Lê Lợi, Q1, TP.HCM', '0909000002', NULL),
+(4, 4, 5, 118000.00, 'delivered', '15 Trần Hưng Đạo, Đà Nẵng', '0909000005', NULL),
+(5, 5, 7, 283000.00, 'shipped', '33 Võ Thị Sáu, Hà Nội', '0909000007', 'Giao giờ hành chính'),
+(6, 3, 4, 416000.00, 'processing', '102 Phan Xích Long, Phú Nhuận, TP.HCM', '0909000004', NULL);
+
+-- 10) ORDER_ITEMS
+INSERT INTO order_items (id, order_id, variant_id, quantity, price, subtotal) VALUES
+(1, 1, 1, 2, 62000.00, 124000.00),
+(2, 1, 7, 1, 99000.00, 99000.00),
+(3, 1, 19, 1, 137000.00, 137000.00),
+
+(4, 2, 15, 1, 124000.00, 124000.00),
+(5, 2, 16, 2, 144000.00, 288000.00),
+
+(6, 3, 28, 1, 102000.00, 102000.00),
+(7, 3, 29, 1, 122000.00, 122000.00),
+(8, 3, 30, 1, 74000.00, 74000.00),
+
+(9, 4, 34, 1, 64000.00, 64000.00),
+(10, 4, 35, 1, 54000.00, 54000.00),
+
+(11, 5, 47, 1, 113000.00, 113000.00),
+(12, 5, 59, 2, 59000.00, 118000.00),
+(13, 5, 60, 1, 52000.00, 52000.00),
+
+(14, 6, 21, 1, 106000.00, 106000.00),
+(15, 6, 22, 1, 90000.00, 90000.00),
+(16, 6, 23, 2, 110000.00, 220000.00);
+
+INSERT INTO payment (order_id, payment_method) VALUES
+                                                   (1, 'cod'),
+                                                   (2, 'card'),
+                                                   (3, 'cod'),
+                                                   (4, 'card'),
+                                                   (5, 'cod'),
+                                                   (6, 'card');
+

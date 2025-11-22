@@ -88,7 +88,7 @@ if ($currentCatId === 0) {
         <a href="#" class="nav-icon" title="Yêu thích">❤</a>
 
         <?php if (!empty($currentUser)): ?>
-          <a href="index.php?controller=home&action=profile"
+          <a href="index.php?controller=account&action=profile"
              class="nav-icon"
              title="Tài khoản: <?= htmlspecialchars($currentUser['name'] ?? ''); ?>">👤</a>
           <a href="index.php?controller=auth&action=logout"
