@@ -25,6 +25,7 @@ final class AccountController extends BaseController
 
     public function updateProfile(): string
     {
+        // ... (Giữ nguyên logic updateProfile) ...
         $u = $this->requireLogin();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,6 +60,138 @@ final class AccountController extends BaseController
         }
 
         $this->redirect('?controller=account&action=profile');
+        return '';
+    }
+    
+    public function password(): string
+    {
+        $this->requireLogin();
+        $csrf = $this->csrfToken();
+        $active = 'password';
+        return $this->render('account/password', compact('csrf','active')); 
+    }
+
+    public function changePassword(): string
+    {
+        $u = $this->requireLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('?controller=account&action=password');
+            return '';
+        }
+        
+        $this->checkCsrf();
+
+        $oldPassword = (string)($_POST['old_password'] ?? '');
+        $newPassword = (string)($_POST['new_password'] ?? '');
+        $newPassword2 = (string)($_POST['confirm_password'] ?? '');
+
+        $user = UserModel::findById((int)$u['id']); 
+
+        $error = null;
+
+        if (!password_verify($oldPassword, $user['password'] ?? '')) {
+            $error = 'Mật khẩu cũ không đúng.';
+        } elseif (strlen($newPassword) < 6) {
+            $error = 'Mật khẩu mới phải tối thiểu 6 ký tự.';
+        } elseif ($newPassword !== $newPassword2) {
+            $error = 'Mật khẩu mới và xác nhận không khớp.';
+        }
+
+        if ($error) {
+            $csrf = $this->csrfToken();
+            $active = 'password';
+            return $this->render('account/password', compact('csrf', 'active', 'error'));
+        }
+
+        UserModel::updatePassword((int)$u['id'], $newPassword);
+
+        $this->flash('success', 'Đổi mật khẩu thành công!');
+        $this->redirect('?controller=account&action=password');
+        return '';
+    }
+
+    /**
+     * Trang Sổ địa chỉ
+     * URL: index.php?controller=account&action=address
+     */
+    public function address(): string
+    {
+        $u = $this->requireLogin();
+        
+        $addresses = UserModel::getAddresses((int)$u['id']);
+
+        $csrf = $this->csrfToken();
+        $active = 'address';
+        
+        return $this->render('account/address', compact('addresses', 'csrf', 'active'));
+    }
+
+    /**
+     * Thêm địa chỉ mới
+     * URL: POST index.php?controller=account&action=addAddress
+     */
+    public function addAddress(): string
+    {
+        $u = $this->requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->checkCsrf();
+
+            $address = trim($_POST['full_address'] ?? '');
+            $phone = trim($_POST['shipping_phone'] ?? '');
+            $isDefault = isset($_POST['is_default']);
+
+            if ($address === '' || $phone === '') {
+                $this->flash('error', 'Địa chỉ và số điện thoại không được rỗng.');
+            } else {
+                UserModel::createAddress((int)$u['id'], $address, $phone, $isDefault);
+                $this->flash('success', 'Thêm địa chỉ giao hàng thành công.');
+            }
+        }
+        
+        $this->redirect('?controller=account&action=address');
+        return '';
+    }
+
+    /**
+     * Đặt địa chỉ làm mặc định
+     * URL: index.php?controller=account&action=setDefaultAddress&id=ADDRESS_ID
+     */
+    public function setDefaultAddress(int $id): string
+    {
+        $u = $this->requireLogin();
+        
+        $address = UserModel::findAddressById($id, (int)$u['id']);
+        
+        if (!$address) {
+            $this->flash('error', 'Địa chỉ không hợp lệ.');
+        } else {
+            UserModel::setDefaultAddress($id, (int)$u['id']);
+            $this->flash('success', 'Đặt địa chỉ mặc định thành công.');
+        }
+
+        $this->redirect('?controller=account&action=address');
+        return '';
+    }
+
+    /**
+     * Xóa địa chỉ
+     * URL: index.php?controller=account&action=deleteAddress&id=ADDRESS_ID
+     */
+    public function deleteAddress(int $id): string
+    {
+        $u = $this->requireLogin();
+        
+        $deleted = UserModel::deleteAddress($id, (int)$u['id']);
+
+        if ($deleted) {
+             $this->flash('success', 'Xóa địa chỉ thành công.');
+        } else {
+             $this->flash('error', 'Không thể xóa địa chỉ. Địa chỉ không tồn tại hoặc bạn không có quyền.');
+        }
+
+        $this->redirect('?controller=account&action=address');
         return '';
     }
 }
