@@ -172,4 +172,26 @@ class Book extends BaseModel {
         $stmt->execute([$bookId]);
         return $stmt->fetchAll();
     }
+
+    // === HÀM MỚI: LẤY SẢN PHẨM LIÊN QUAN (CÙNG DANH MỤC) ===
+    public static function getRelatedProducts($bookId, $categoryId, $limit = 4) {
+        $sql = "SELECT b.id, b.title, 
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id
+                WHERE b.category_id = ? AND b.id != ?
+                GROUP BY b.id, b.title
+                ORDER BY RAND()
+                LIMIT ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $categoryId, \PDO::PARAM_INT);
+        $stmt->bindValue(2, $bookId, \PDO::PARAM_INT);
+        $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    // === HẾT HÀM MỚI ===
 }
