@@ -184,6 +184,60 @@
     margin-bottom: 25px;
 }
 
+/* Phần chọn số lượng */
+.quantity-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    margin-bottom: 20px;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-quantity {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--primary-color);
+    background: white;
+    color: var(--primary-color);
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-quantity:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+    transform: scale(1.1);
+}
+
+.btn-quantity:active {
+    transform: scale(0.95);
+}
+
+#quantityInput {
+    width: 80px;
+    height: 40px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+#quantityInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 /* Nút hành động */
 .action-buttons {
     display: flex;
@@ -484,6 +538,22 @@
           </p>
         </div>
 
+        <!-- CHỌN SỐ LƯỢNG -->
+        <div class="quantity-section">
+          <strong style="font-size: 16px; color: #333; display: block; margin-bottom: 12px;">
+            Số lượng:
+          </strong>
+          <div class="quantity-controls">
+            <button type="button" class="btn-quantity" onclick="decreaseQuantity()">
+              −
+            </button>
+            <input type="number" id="quantityInput" value="1" min="1" max="999" onchange="validateQuantity()">
+            <button type="button" class="btn-quantity" onclick="increaseQuantity()">
+              +
+            </button>
+          </div>
+        </div>
+
         <!-- NÚT THÊM GIỎ VÀ MUA NGAY -->
         <div class="action-buttons">
           <a href="index.php?controller=cart&action=add&id=<?php echo (int)$book['id']; ?>" 
@@ -560,11 +630,49 @@ function selectVariant(element) {
     document.getElementById('productPrice').innerHTML = 
         new Intl.NumberFormat('vi-VN').format(price) + '₫';
     
-    // Cập nhật link nút
+    // Cập nhật link với số lượng
+    updateCartLinks();
+}
+
+// Hàm tăng số lượng
+function increaseQuantity() {
+    const input = document.getElementById('quantityInput');
+    const currentValue = parseInt(input.value) || 1;
+    if (currentValue < 999) {
+        input.value = currentValue + 1;
+        updateCartLinks();
+    }
+}
+
+// Hàm giảm số lượng
+function decreaseQuantity() {
+    const input = document.getElementById('quantityInput');
+    const currentValue = parseInt(input.value) || 1;
+    if (currentValue > 1) {
+        input.value = currentValue - 1;
+        updateCartLinks();
+    }
+}
+
+// Hàm validate số lượng
+function validateQuantity() {
+    const input = document.getElementById('quantityInput');
+    let value = parseInt(input.value) || 1;
+    if (value < 1) value = 1;
+    if (value > 999) value = 999;
+    input.value = value;
+    updateCartLinks();
+}
+
+// Cập nhật link với số lượng
+function updateCartLinks() {
+    const quantity = document.getElementById('quantityInput').value;
     const bookId = <?php echo (int)$book['id']; ?>;
+    const variantParam = selectedVariantId ? '&variant_id=' + selectedVariantId : '';
+    
     document.getElementById('addToCartBtn').href = 
-        'index.php?controller=cart&action=add&id=' + bookId + '&variant_id=' + selectedVariantId;
+        'index.php?controller=cart&action=add&id=' + bookId + variantParam + '&quantity=' + quantity;
     document.getElementById('buyNowBtn').href = 
-        'index.php?controller=cart&action=add&id=' + bookId + '&variant_id=' + selectedVariantId + '&buynow=1';
+        'index.php?controller=cart&action=add&id=' + bookId + variantParam + '&quantity=' + quantity + '&buynow=1';
 }
 </script>
