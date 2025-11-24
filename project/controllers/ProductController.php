@@ -25,10 +25,14 @@ class ProductController extends BaseController
         // Lấy danh sách ảnh
         $images = Book::getImages($id);
 
+        // === MỚI: Lấy sản phẩm liên quan (cùng danh mục) ===
+       $relatedProducts = Book::getRelatedProducts($id, $book['category_id'], 4);
+
         return $this->render('page/product_detail', [
-            'book'     => $book,
-            'variants' => $variants,
-            'images'   => $images,
+            'book'            => $book,
+            'variants'        => $variants,
+            'images'          => $images,
+            'relatedProducts' => $relatedProducts, // Thêm biến mới
         ]);
     }
 }
