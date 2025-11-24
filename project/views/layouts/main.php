@@ -66,9 +66,11 @@ if ($currentCatId === 0) {
 
   <header class="header">
     <div class="container header-inner">
-      <a class="brand" href="index.php?controller=home&action=index">
-        <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> BookStore
-      </a>
+   <a class="brand" href="index.php?controller=home&action=index">
+    <img src="<?= $ASSET; ?>/img/logo.png" 
+         alt="WiseDecision Bookstore" 
+         style="height: 50px; width: auto;"/> 
+</a>
 
       <form class="search" method="GET" action="index.php">
         
@@ -146,9 +148,14 @@ if ($currentCatId === 0) {
   <footer class="footer">
     <div class="container grid footer-grid">
       <div>
-        <a class="brand foot" href="index.php?controller=home&action=index">
-          <img src="https://dummyimage.com/36x36/0eb/ffffff.png&text=B" alt="logo"/> Bookstore
-        </a>
+      
+
+<a class="brand foot" href="index.php?controller=home&action=index">
+    <img src="<?= $ASSET; ?>/img/amban.png" 
+         alt="WiseDecision Bookstore Logo Âm Bản" 
+         style="height: 60px; width: auto;"/> 
+</a>
+<p class="muted">Hiệu sách online của bạn. Sách thật. Giá tốt. Giao nhanh.</p>
         <p class="muted">Hiệu sách online của bạn. Sách thật. Giá tốt. Giao nhanh.</p>
       </div>
       <div>

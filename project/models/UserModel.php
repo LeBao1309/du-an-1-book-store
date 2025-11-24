@@ -21,3 +21,4 @@ final class UserModel extends BaseModel
         return (int) self::db()->lastInsertId();
     }
 }
+
