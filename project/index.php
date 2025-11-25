@@ -28,6 +28,7 @@ $controllerMap = [
     'book'     => 'BookController',
     'product'  => 'ProductController',
     'account'  => 'AccountController',
+    'wishlist' => 'WishlistController',
 ];
 
 if (!array_key_exists($controllerName, $controllerMap)) {

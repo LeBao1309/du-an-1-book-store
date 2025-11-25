@@ -25,7 +25,6 @@ final class AccountController extends BaseController
 
     public function updateProfile(): string
     {
-        // ... (Giữ nguyên logic updateProfile) ...
         $u = $this->requireLogin();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -193,5 +192,69 @@ final class AccountController extends BaseController
 
         $this->redirect('?controller=account&action=address');
         return '';
+    }
+
+    // ================================================================
+    // PHẦN MỚI THÊM VÀO: DANH SÁCH YÊU THÍCH (WISHLIST)
+    // ================================================================
+
+    /**
+     * Trang danh sách yêu thích
+     * URL: index.php?controller=account&action=wishlist
+     */
+    public function wishlist(): string
+    {
+        $u = $this->requireLogin();
+
+        // Nạp Model Wishlist
+        require_once __DIR__ . '/../models/WishlistModel.php';
+
+        // Lấy danh sách
+        $books = Wishlist::getWishlist((int)$u['id']);
+
+        $csrf = $this->csrfToken();
+        $active = 'wishlist'; // Để highlight menu bên trái
+
+        return $this->render('account/wishlist', compact('books', 'csrf', 'active'));
+    }
+
+    /**
+     * Xóa khỏi danh sách yêu thích
+     * URL: index.php?controller=account&action=removeWishlist&id=...
+     */
+    public function removeWishlist(): string
+    {
+        $u = $this->requireLogin();
+        $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if ($bookId > 0) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            Wishlist::remove((int)$u['id'], $bookId);
+            $this->flash('success', 'Đã xóa sản phẩm khỏi danh sách yêu thích');
+        }
+
+        $this->redirect('?controller=account&action=wishlist');
+        return '';
+    }
+    public function addWishlist(): void
+    {
+        // 1. Kiểm tra đăng nhập
+        $u = $this->requireLogin();
+        
+        $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if ($bookId > 0) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            
+            // 2. Gọi Model để thêm
+            Wishlist::add((int)$u['id'], $bookId);
+            
+            // 3. Thông báo
+            $this->flash('success', 'Đã thêm sách vào danh sách yêu thích ❤️');
+        }
+
+        // 4. Quay lại trang cũ (để người dùng tiếp tục lướt)
+        $backUrl = $_SERVER['HTTP_REFERER'] ?? '?controller=home';
+        $this->redirect($backUrl);
     }
 }
