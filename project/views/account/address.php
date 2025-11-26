@@ -45,18 +45,21 @@
 
                     <hr class="my-4">
 
-                    <h5 class="mb-3">Thêm Địa Chỉ Mới</h5>
-                    <form method="POST" action="?controller=account&action=addAddress">
+                    <h5 class="mb-3 fw-bold" style="color:var(--brand)">Thêm Địa Chỉ Mới</h5>
+                    
+                    <form id="addAddressForm" method="POST" action="?controller=account&action=addAddress">
                         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
                         
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Địa chỉ chi tiết (VD: Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành)</label>
-                            <textarea name="full_address" required class="form-control acc-input" rows="3"></textarea>
+                            <label class="form-label fw-semibold">Địa chỉ chi tiết</label>
+                            <textarea name="full_address" id="full_address" required class="form-control acc-input" rows="3" placeholder="Số nhà, tên đường, Xã/Phường, Quận/Huyện..."></textarea>
+                            <div id="addressError" class="js-error"></div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Số điện thoại nhận hàng</label>
-                            <input name="shipping_phone" type="text" required class="form-control acc-input">
+                            <input name="shipping_phone" id="shipping_phone" type="text" required class="form-control acc-input" placeholder="Ví dụ: 0912345678">
+                            <div id="phoneError" class="js-error"></div>
                         </div>
 
                         <div class="form-check mb-3">
@@ -66,10 +69,51 @@
                             </label>
                         </div>
 
-                        <button class="btn btn-success px-4 acc-btn">Thêm Địa Chỉ</button>
+                        <button type="submit" class="btn w-100 acc-btn">Thêm Địa Chỉ</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+    document.getElementById('addAddressForm').addEventListener('submit', function(e) {
+        // 1. Lấy giá trị
+        const phone = document.getElementById('shipping_phone').value.trim();
+        const address = document.getElementById('full_address').value.trim();
+        
+        const phoneError = document.getElementById('phoneError');
+        const addressError = document.getElementById('addressError');
+
+        // Reset lỗi cũ
+        phoneError.style.display = 'none';
+        addressError.style.display = 'none';
+        
+        let hasError = false;
+
+        // 2. KIỂM TRA SỐ ĐIỆN THOẠI
+        // ^0     : Bắt đầu bằng số 0
+        // \d{9}  : Theo sau là 9 chữ số bất kỳ
+        // $      : Kết thúc (tổng cộng đúng 10 số)
+        const phoneRegex = /^0\d{9}$/;
+
+        if (!phoneRegex.test(phone)) {
+            phoneError.innerText = 'Số điện thoại không hợp lệ (Phải bắt đầu bằng số 0 và có đúng 10 số).';
+            phoneError.style.display = 'block';
+            hasError = true;
+        }
+
+        // Kiểm tra địa chỉ không được để trống (hoặc quá ngắn)
+        if (address.length < 10) {
+            addressError.innerText = 'Vui lòng nhập địa chỉ cụ thể hơn (ít nhất 10 ký tự).';
+            addressError.style.display = 'block';
+            hasError = true;
+        }
+
+        // 3. Nếu có lỗi thì chặn gửi form
+        if (hasError) {
+            e.preventDefault();
+        }
+    });
+</script>
