@@ -73,17 +73,6 @@ if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
     </script>
   <?php endif; ?>
 
-  <div class="topbar">
-    <div class="container">
-      <div class="topbar-left">Hotline: 1900 0123 · support@wisedecision.io.vn</div>
-      <div class="topbar-right">
-        <a href="#">Theo dõi đơn</a>
-        <span class="dot"></span>
-        <a href="#">Hỗ trợ</a>
-      </div>
-    </div>
-  </div>
-
   <header class="header">
     <div class="container header-inner">
       <a class="brand" href="index.php?controller=home&action=index">

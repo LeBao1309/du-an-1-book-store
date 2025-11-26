@@ -34,7 +34,7 @@
             <h1 class="h3 mb-3"><?= htmlspecialchars($book['title']) ?></h1>
 
             <p class="text-muted mb-1">
-                Danh mục ID: <?= (int)$book['category_id'] ?> 
+                Danh mục ID: <?= (string)$book['category_id'] ?> 
                 <!-- (nếu muốn có tên danh mục thì join thêm sau) -->
             </p>
 
