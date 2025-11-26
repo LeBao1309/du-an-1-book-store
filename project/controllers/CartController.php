@@ -178,5 +178,48 @@ class CartController extends BaseController
         $this->redirect('index.php?controller=cart&action=index');
         return '';
     }
+    public function updateSingle(): string
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
+    }
+
+    // Kiểm tra CSRF
+    $this->checkCsrf();
+
+    if (empty($_SESSION['cart'])) {
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
+    }
+
+    $id        = (int)($_POST['id'] ?? 0);
+    $direction = $_POST['direction'] ?? 'inc';
+
+    if ($id <= 0 || !isset($_SESSION['cart'][$id])) {
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
+    }
+
+    $qty = (int)($_SESSION['cart'][$id]['quantity'] ?? 1);
+
+    if ($direction === 'inc') {
+        $qty++;
+    } elseif ($direction === 'dec') {
+        $qty--;
+    }
+
+    if ($qty <= 0) {
+        // nếu về 0 thì xóa luôn khỏi giỏ
+        unset($_SESSION['cart'][$id]);
+    } else {
+        $_SESSION['cart'][$id]['quantity'] = $qty;
+    }
+
+    $this->flash('success', 'Đã cập nhật số lượng sản phẩm');
+    $this->redirect('index.php?controller=cart&action=index');
+    return '';
+}
+
 }
 ?>
