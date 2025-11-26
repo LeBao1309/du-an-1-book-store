@@ -283,3 +283,178 @@ a{color:inherit;text-decoration:none}
   /* Mobile: Footer chuyển thành 1 cột */
   .footer-grid { grid-template-columns: 1fr; }
 }
+/* ==========================================================================
+   8. GIAO DIỆN ĐĂNG NHẬP / ĐĂNG KÝ (FIXED)
+   ========================================================================== */
+.auth-wrapper {
+    background: #f0fdfa; /* Nền xanh rất nhạt cho toàn màn hình */
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 500px; /* Giới hạn chiều rộng thẻ */
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Đổ bóng nhẹ */
+    border-top: 5px solid var(--brand); /* Viền màu xanh trên đầu */
+}
+
+.auth-card h1 {
+    color: #0f172a;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 26px;
+    font-weight: 800;
+}
+
+.form-group { margin-bottom: 20px; }
+.form-group label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #334155;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px; /* Bo góc vừa phải */
+    font-size: 15px;
+    outline: none;
+    transition: 0.2s;
+}
+.form-control:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(14, 165, 165, 0.15);
+}
+
+/* NÚT BẤM */
+.btn-auth {
+    width: 100%;
+    padding: 14px;
+    background: var(--brand);
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+.btn-auth:hover { background: #0d9494; }
+
+/* CHỮ GHI CHÚ MẬT KHẨU (BÉ LẠI) */
+.password-note {
+    font-size: 12px; /* Chữ bé */
+    color: #64748b;  /* Màu xám nhạt */
+    margin-top: 6px;
+    line-height: 1.4;
+    display: block;  /* Luôn hiện */
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e1;
+}
+
+/* Khi có lỗi thì hiện màu đỏ */
+.js-error {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 5px;
+    font-weight: 500;
+    display: none;
+}
+/* ==========================================================================
+   9. ACCOUNT PAGES (PROFILE, PASSWORD, ADDRESS...)
+   ========================================================================== */
+
+/* Header của Sidebar và Content (Màu gradient xanh) */
+.acc-sidebar__head, 
+.acc-content__head {
+  background: linear-gradient(180deg, var(--brand), var(--brand-2)); /* Xanh ngọc */
+  padding: 20px 22px;
+  color: #fff;
+  border-radius: var(--radius) var(--radius) 0 0; /* Bo tròn góc trên */
+}
+
+/* Sidebar Menu */
+.acc-menu .acc-item {
+  padding: 14px 16px;
+  font-weight: 500;
+  border: 0;
+  background: var(--card);
+  color: var(--text);
+  border-bottom: 1px solid #f1f5f9;
+  transition: 0.2s;
+}
+
+.acc-menu .acc-item:hover {
+  background: rgba(14,165,165,0.05);
+  color: var(--brand);
+}
+
+/* Mục đang chọn (Active) */
+.acc-menu .acc-item.active {
+  background: rgba(14,165,165,0.1); 
+  color: var(--brand);
+  font-weight: 700;
+  border-left: 4px solid var(--brand); /* Viền trái nhấn mạnh */
+}
+
+/* Khung nội dung bên phải */
+.acc-content {
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: none;
+}
+
+/* Input trong trang tài khoản */
+.acc-input {
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: #fff;
+  padding: 10px 16px;
+}
+.acc-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(14, 165, 165, 0.15);
+}
+
+/* Nút bấm lưu/cập nhật */
+.acc-btn {
+  height: 48px;
+  border-radius: 8px;
+  font-weight: 700;
+  background: var(--brand);
+  border: none;
+  color: #fff;
+  transition: 0.2s;
+}
+.acc-btn:hover {
+  background: var(--brand-2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 165, 0.3);
+}
+
+/* Style cho danh sách địa chỉ */
+.address-item {
+    transition: 0.2s;
+    border: 1px solid var(--line) !important;
+}
+.address-item:hover {
+    border-color: var(--brand) !important;
+    background: #f0fdfa;
+}
+.bg-light-green { background-color: #f0fdfa; }
