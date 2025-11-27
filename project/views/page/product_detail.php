@@ -35,6 +35,26 @@
     color: white;
 }
 
+/* Alert thông báo */
+.alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
 .product-container {
     background: white;
     padding: 30px;
@@ -393,6 +413,230 @@
     transform: scale(1.02);
 }
 
+/* Phần đánh giá và bình luận */
+.review-section {
+    margin-top: 40px;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(15, 191, 191, 0.15);
+    border: 1px solid rgba(15, 191, 191, 0.2);
+}
+
+.review-title {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: var(--primary-color);
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.review-summary {
+    text-align: center;
+    background: linear-gradient(135deg, #f0fffe 0%, var(--primary-light) 100%);
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.rating-big {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.rating-stars-big {
+    font-size: 28px;
+    color: #ffc107;
+    margin: 10px 0;
+}
+
+.total-reviews {
+    color: #666;
+    font-size: 16px;
+}
+
+/* Form viết bình luận */
+.write-review-box {
+    background: #f0f9f9;
+    padding: 25px;
+    border-radius: 12px;
+    margin: 25px 0;
+    border: 2px solid var(--primary-light);
+}
+
+.write-review-box h4 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+/* Rating sao xịn xò */
+.star-rating-input {
+    display: flex;
+    gap: 8px;
+    font-size: 45px;
+    margin: 15px 0;
+    justify-content: center;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 3px dashed #e0e0e0;
+}
+
+.star {
+    cursor: pointer;
+    color: #ddd;
+    transition: all 0.2s ease;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.star:hover {
+    transform: scale(1.3) rotate(15deg);
+    color: #ffc107;
+}
+
+.star.active {
+    color: #ffc107;
+    transform: scale(1.15);
+    animation: starPulse 0.3s ease;
+}
+
+@keyframes starPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1.15); }
+}
+
+.rating-hint {
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+.btn-submit-review {
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-submit-review:hover {
+    background: var(--primary-hover);
+}
+
+.login-prompt {
+    background: #fff3cd;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 25px 0;
+}
+
+.login-prompt a {
+    color: var(--primary-color);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.login-prompt a:hover {
+    text-decoration: underline;
+}
+
+/* Danh sách bình luận */
+.comments-list {
+    margin-top: 30px;
+}
+
+.comments-list h4 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.comment-item {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+}
+
+.comment-item:hover {
+    border-color: var(--primary-color);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.comment-header strong {
+    color: #333;
+    font-size: 16px;
+}
+
+.comment-rating {
+    font-size: 18px;
+    color: #ffc107;
+}
+
+.comment-date {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.comment-content {
+    color: #555;
+    line-height: 1.6;
+}
+
+.no-comments {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
 @media (max-width: 768px) {
     .variant-buttons {
         flex-direction: column;
@@ -415,6 +659,21 @@
       ← Quay lại danh sách
     </a>
   </div>
+
+  <!-- THÔNG BÁO SUCCESS/ERROR -->
+  <?php if (!empty($_SESSION['success'])): ?>
+    <div class="alert alert-success">
+      ✅ <?php echo htmlspecialchars($_SESSION['success']); ?>
+    </div>
+    <?php unset($_SESSION['success']); ?>
+  <?php endif; ?>
+
+  <?php if (!empty($_SESSION['error'])): ?>
+    <div class="alert alert-error">
+      ❌ <?php echo htmlspecialchars($_SESSION['error']); ?>
+    </div>
+    <?php unset($_SESSION['error']); ?>
+  <?php endif; ?>
 
   <!-- THÔNG TIN SẢN PHẨM -->
   <div class="product-container">
@@ -569,6 +828,110 @@
     </div>
   </div>
 
+  <!-- PHẦN ĐÁNH GIÁ VÀ BÌNH LUẬN -->
+  <div class="review-section">
+    <h2 class="review-title">⭐ Đánh giá & Bình luận</h2>
+    
+    <!-- Thống kê đánh giá -->
+    <?php if (!empty($commentStats) && $commentStats['total'] > 0): ?>
+      <div class="review-summary">
+        <span class="rating-big"><?php echo number_format($commentStats['avg_rating'], 1); ?></span>
+        <div class="rating-stars-big">
+          <?php 
+            $avgRating = round($commentStats['avg_rating']);
+            for ($i = 1; $i <= 5; $i++) {
+                if ($i <= $avgRating) {
+                    echo '★';
+                } else {
+                    echo '☆';
+                }
+            }
+          ?>
+        </div>
+        <p class="total-reviews"><?php echo (int)$commentStats['total']; ?> đánh giá</p>
+      </div>
+    <?php endif; ?>
+
+    <!-- Form viết bình luận (ĐƠN GIẢN) -->
+    <?php if (!empty($_SESSION['user'])): ?>
+    <div class="write-review-box">
+      <h4>✍️ Viết đánh giá của bạn</h4>
+      <form action="index.php?controller=product&action=addComment" method="POST" id="reviewForm">
+        <input type="hidden" name="book_id" value="<?php echo (int)$book['id']; ?>">
+        <input type="hidden" name="rating" id="ratingValue" value="" required>
+        
+        <div class="form-group">
+          <label>Đánh giá của bạn: <span id="ratingText" style="color: var(--primary-color); font-weight: bold;"></span></label>
+          <div class="star-rating-input">
+            <span class="star" data-rating="1" onclick="setRating(1)">★</span>
+            <span class="star" data-rating="2" onclick="setRating(2)">★</span>
+            <span class="star" data-rating="3" onclick="setRating(3)">★</span>
+            <span class="star" data-rating="4" onclick="setRating(4)">★</span>
+            <span class="star" data-rating="5" onclick="setRating(5)">★</span>
+          </div>
+          <p class="rating-hint">👆 Click vào sao để chọn điểm</p>
+        </div>
+        
+        <div class="form-group">
+          <label>Nội dung bình luận:</label>
+          <textarea name="content" class="form-control" rows="4" 
+                    placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..." 
+                    required></textarea>
+        </div>
+        
+        <button type="submit" class="btn-submit-review">
+          📝 Gửi đánh giá
+        </button>
+      </form>
+    </div>
+    <?php else: ?>
+    <div class="login-prompt">
+      <p>Bạn cần <a href="index.php?controller=auth&action=login">đăng nhập</a> để viết đánh giá</p>
+    </div>
+    <?php endif; ?>
+
+    <!-- Danh sách bình luận -->
+    <div class="comments-list">
+      <h4>💬 Bình luận từ khách hàng</h4>
+      
+      <?php if (!empty($comments) && count($comments) > 0): ?>
+        <?php foreach ($comments as $comment): ?>
+        <div class="comment-item">
+          <div class="comment-header">
+            <strong>👤 <?php echo htmlspecialchars($comment['user_name']); ?></strong>
+            
+            <?php if (!empty($comment['rating'])): ?>
+            <span class="comment-rating">
+              <?php 
+                for ($i = 1; $i <= 5; $i++) {
+                    if ($i <= $comment['rating']) {
+                        echo '★';
+                    } else {
+                        echo '☆';
+                    }
+                }
+              ?>
+            </span>
+            <?php endif; ?>
+          </div>
+          
+          <p class="comment-date">
+            <?php echo date('d/m/Y H:i', strtotime($comment['created_at'])); ?>
+          </p>
+          
+          <div class="comment-content">
+            <?php echo nl2br(htmlspecialchars($comment['content'])); ?>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="no-comments">
+          <p>Chưa có bình luận nào cho sản phẩm này.</p>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <!-- SẢN PHẨM LIÊN QUAN -->
   <?php if (!empty($relatedProducts)): ?>
   <div class="related-section">
@@ -605,6 +968,41 @@
 </div>
 
 <script>
+// Hàm chọn rating sao
+function setRating(rating) {
+    // Lưu giá trị vào hidden input
+    document.getElementById('ratingValue').value = rating;
+    
+    // Bỏ active của tất cả sao
+    const stars = document.querySelectorAll('.star');
+    stars.forEach(star => star.classList.remove('active'));
+    
+    // Thêm active cho các sao được chọn
+    for (let i = 0; i < rating; i++) {
+        stars[i].classList.add('active');
+    }
+    
+    // Hiển thị text mô tả
+    const ratingTexts = {
+        1: '(1 sao - Không hài lòng)',
+        2: '(2 sao - Chưa tốt lắm)',
+        3: '(3 sao - Bình thường)',
+        4: '(4 sao - Tốt)',
+        5: '(5 sao - Tuyệt vời!)'
+    };
+    document.getElementById('ratingText').textContent = ratingTexts[rating];
+}
+
+// Validate form trước khi submit
+document.getElementById('reviewForm')?.addEventListener('submit', function(e) {
+    const rating = document.getElementById('ratingValue').value;
+    if (!rating) {
+        e.preventDefault();
+        alert('⚠️ Vui lòng chọn số sao đánh giá!');
+        return false;
+    }
+});
+
 // Đổi ảnh khi click thumbnail
 function changeImage(newSrc) {
     document.querySelector('#mainImage img').src = newSrc;
@@ -659,7 +1057,7 @@ function validateQuantity() {
     const input = document.getElementById('quantityInput');
     let value = parseInt(input.value) || 1;
     if (value < 1) value = 1;
-    if (value > 999) value = 999;
+    if (value > 99) value = 99;
     input.value = value;
     updateCartLinks();
 }

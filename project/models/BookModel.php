@@ -22,7 +22,6 @@ class Book extends BaseModel {
     }
     // === HẾT HÀM MỚI ===
 
-
     // === HÀM ĐÃ SỬA (THÊM $sort) ===
     public static function searchByTitle($query, $limit, $offset, $sort = 'newest') {
         $searchTerm = '%' . $query . '%'; 
