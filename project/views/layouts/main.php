@@ -75,16 +75,16 @@ if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
 
   <header class="header">
     <div class="container header-inner">
-      <a class="brand" href="index.php?controller=home&action=index">
-        <img src="<?= $ASSET; ?>/img/logo.png" 
-             alt="WiseDecision Bookstore" 
-             style="height: 50px; width: auto;"/> 
-      </a>
+    <a class="brand" href="index.php?controller=home&action=index">
+  <img src="<?= $ASSET; ?>/images/logo.png" 
+       alt="WiseDecision Bookstore" 
+       style="height: 70px; width: auto; background: transparent !important; border: none !important; box-shadow: none !important;" /> 
+</a>
 
       <form class="search" method="GET" action="index.php">
         <input type="hidden" name="controller" value="category">
         <input type="hidden" name="action" value="index">
-        <input type="text" name="q" placeholder="Tìm kiếm sách, tác giả..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" autocomplete="off" />
+<input type="text" name="q" placeholder="Tìm kiếm sách, tác giả..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" autocomplete="off" />
         <button class="btn" type="submit">Tìm</button>
       </form>
 
@@ -141,15 +141,15 @@ if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
       <div class="footer-grid">
         
         <div>
-          <a class="brand foot" href="index.php?controller=home&action=index">
-             <img src="<?= $ASSET; ?>/img/amban.png" 
-                  alt="WiseDecision Bookstore Logo Âm Bản" 
-                  style="height: 60px; width: auto; margin-bottom: 20px; display: block;"/> 
-          </a>
+        <a class="brand foot" href="index.php?controller=home&action=index">
+    <img src="<?= $ASSET; ?>/images/amban.png" 
+         alt="WiseDecision Bookstore Logo Âm Bản" 
+         style="height: 80px; width: auto; margin-bottom: 20px; display: block; background: transparent !important; border: none !important; box-shadow: none !important;"/> 
+</a>
 
           <p style="opacity: 0.8;">
             Nơi hội tụ những cuốn sách giá trị nhất. Chúng tôi tin rằng mỗi cuốn sách là một người bạn, một người thầy vĩ đại.
-          </p>
+</p>
           
           <div style="margin-top: 25px; display: flex; gap: 15px;">
              <a href="#" class="social-icon" style="background:#3b5998;" title="Facebook">f</a>
