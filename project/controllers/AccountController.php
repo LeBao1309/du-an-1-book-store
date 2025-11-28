@@ -257,4 +257,48 @@ final class AccountController extends BaseController
         $backUrl = $_SERVER['HTTP_REFERER'] ?? '?controller=home';
         $this->redirect($backUrl);
     }
+    // --- BẮT ĐẦU PHẦN LỊCH SỬ ĐƠN HÀNG ---
+
+    /**
+     * Hiển thị danh sách đơn hàng
+     * URL: index.php?controller=account&action=orders
+     */
+    public function orders(): string
+    {
+        $u = $this->requireLogin();
+        require_once __DIR__ . '/../models/OrderModel.php';
+
+        $orders = OrderModel::getHistory((int)$u['id']);
+        $active = 'orders'; // Để tô màu menu sidebar
+
+        return $this->render('account/orders', compact('orders', 'active'));
+    }
+
+    /**
+     * Hiển thị chi tiết đơn hàng
+     * URL: index.php?controller=account&action=orderDetail&id=XXX
+     */
+    public function orderDetail(): string
+    {
+        $u = $this->requireLogin();
+        require_once __DIR__ . '/../models/OrderModel.php';
+
+        $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        // 1. Lấy thông tin đơn (Header)
+        $order = OrderModel::getOrderById($orderId, (int)$u['id']);
+        if (!$order) {
+            $this->flash('error', 'Không tìm thấy đơn hàng này.');
+            $this->redirect('?controller=account&action=orders');
+            return '';
+        }
+
+        // 2. Lấy danh sách món hàng (Items)
+        $items = OrderModel::getOrderItems($orderId);
+        $active = 'orders';
+
+        return $this->render('account/order_detail', compact('order', 'items', 'active'));
+    }
+    
+    // --- KẾT THÚC PHẦN LỊCH SỬ ĐƠN HÀNG ---
 }
