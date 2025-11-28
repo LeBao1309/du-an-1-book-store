@@ -139,11 +139,24 @@
           </span>
         </p>
 
-        <!-- Nút này giờ chỉ là button thường, không submit -->
+        <!-- Nút đi tới trang thanh toán (checkout) -->
+        <?php $loggedIn = !empty($_SESSION['user']); ?>
+        <?php if ($loggedIn): ?>
+          <a
+            href="index.php?controller=payment&action=checkout"
+            class="btn btn-success"
+          >
+            Thanh toán
+          </a>
+        <?php else: ?>
+          <a
+            href="index.php?controller=auth&action=login"
+            class="btn btn-success"
+          >
+            Đăng nhập để thanh toán
+          </a>
+        <?php endif; ?>
 
-        <button type="button" class="btn btn-success" disabled>
-          Thanh toán (sẽ làm ở phase sau)
-        </button>
       </div>
     </div>
 
