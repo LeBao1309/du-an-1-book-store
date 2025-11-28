@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../models/OrderModel.php';
 
 /**
  * PaymentController
@@ -251,10 +252,34 @@ public function checkout(): string
         $amount  = $inputData['vnp_Amount'] ?? null;
 
         if ($isValid && $rspCode === '00') {
-            unset($_SESSION['cart']);
-            $message = "Thanh toán VNPay thành công. Mã giao dịch: " . htmlspecialchars((string)$orderId);
-            $success = true;
-        } else {
+
+        if (!empty($_SESSION['user']) && !empty($_SESSION['cart'])) {
+            $currentUser = $_SESSION['user'];
+            $userId      = (int)$currentUser['id'];
+            $cart        = $_SESSION['cart'];
+
+            $addresses = UserModel::getAddresses($userId);
+            $shipping  = $addresses[0] ?? null;
+
+            try {
+                $savedOrderId = OrderModel::createFromCart(
+                    $userId,
+                    $shipping,
+                    $cart,
+                    'pending',
+                    'Thanh toán VNPay thành công'
+                );
+            } catch (\Throwable $e) {
+                $this->flash('error', 'Thanh toán thành công nhưng lỗi lưu đơn: ' . $e->getMessage());
+                $savedOrderId = null;
+            }
+        }
+
+        unset($_SESSION['cart']);
+        $message = "Thanh toán VNPay thành công. Mã đơn: " 
+                . htmlspecialchars((string)($savedOrderId ?? $orderId));
+        $success = true;
+    } else {
             $message = "Thanh toán VNPay thất bại hoặc dữ liệu không hợp lệ.";
             $success = false;
         }
@@ -363,10 +388,35 @@ public function checkout(): string
         $message    = $_GET['message']    ?? '';
 
         if ($resultCode === '0') {
-            unset($_SESSION['cart']);
-            $success = true;
-            $msg     = "Thanh toán MoMo thành công. Mã đơn: " . htmlspecialchars((string)$orderId);
-        } else {
+    // Lưu đơn hàng
+    if (!empty($_SESSION['user']) && !empty($_SESSION['cart'])) {
+            $currentUser = $_SESSION['user'];
+            $userId      = (int)$currentUser['id'];
+            $cart        = $_SESSION['cart'];
+
+            $addresses = UserModel::getAddresses($userId);
+            $shipping  = $addresses[0] ?? null;
+
+            try {
+                $savedOrderId = OrderModel::createFromCart(
+                    $userId,
+                    $shipping,
+                    $cart,
+                    'pending',     // trạng thái giao hàng
+                    'Thanh toán MoMo thành công'
+                );
+            } catch (\Throwable $e) {
+                // Nếu fail thì vẫn nên log, nhưng tạm thời chỉ flash
+                $this->flash('error', 'Thanh toán thành công nhưng lỗi lưu đơn: ' . $e->getMessage());
+                $savedOrderId = null;
+            }
+        }
+
+        unset($_SESSION['cart']);
+        $success = true;
+        $msg     = "Thanh toán MoMo thành công. Mã đơn: " 
+                . htmlspecialchars((string)($savedOrderId ?? $orderId));
+    } else {
             $success = false;
             $msg     = "Thanh toán MoMo thất bại: " . htmlspecialchars($message);
         }
@@ -382,23 +432,57 @@ public function checkout(): string
     /**
      * Thanh toán khi nhận hàng (COD)
      */
-    private function payWithCod(int $totalAmount): string
-    {
-        $cart = $_SESSION['cart'] ?? [];
-        if (empty($cart)) {
-            $this->flash('error', 'Giỏ hàng đang trống');
-            $this->redirect('index.php?controller=cart&action=index');
-            return '';
-        }
-
-        $orderId = time(); // tạm dùng timestamp làm mã đơn
-
-        // Thực tế: lưu vào bảng orders (payment_method = 'cod', status = 'pending')
-        unset($_SESSION['cart']);
-
-        return $this->render('payment/cod_success', [
-            'orderId' => $orderId,
-            'amount'  => $totalAmount,
-        ]);
+private function payWithCod(int $totalAmount): string
+{
+    $cart = $_SESSION['cart'] ?? [];
+    if (empty($cart)) {
+        $this->flash('error', 'Giỏ hàng đang trống');
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
     }
+
+    if (empty($_SESSION['user'])) {
+        $this->flash('error', 'Vui lòng đăng nhập trước khi thanh toán');
+        $this->redirect('index.php?controller=auth&action=login');
+        return '';
+    }
+
+    $currentUser = $_SESSION['user'];
+    $userId      = (int)$currentUser['id'];
+
+    // Lấy địa chỉ giao hàng mặc định
+    $addresses = UserModel::getAddresses($userId);
+    $shipping  = $addresses[0] ?? null;
+
+    if (!$shipping) {
+        $this->flash('error', 'Vui lòng cập nhật địa chỉ giao hàng trước khi đặt hàng');
+        $this->redirect('index.php?controller=account&action=address');
+        return '';
+    }
+
+    // 👉 LƯU ORDER XUỐNG DB
+    try {
+        $orderId = OrderModel::createFromCart(
+            $userId,
+            $shipping,
+            $cart,
+            'pending',   // COD: trạng thái giao hàng ban đầu
+            null        // note: tạm thời để null, sau có thể thêm ghi chú từ form
+        );
+    } catch (\Throwable $e) {
+        // Có lỗi thì báo cho user
+        $this->flash('error', 'Không tạo được đơn hàng: ' . $e->getMessage());
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
+    }
+
+    // XÓA GIỎ HÀNG SAU KHI LƯU ORDER
+    unset($_SESSION['cart']);
+
+    return $this->render('payment/cod_success', [
+        'orderId' => $orderId,
+        'amount'  => $totalAmount,
+    ]);
+}
+
 }
