@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../models/UserModel.php';   // vì bạn dùng UserModel::getAddresses
+require_once __DIR__ . '/../models/OrderModel.php'; // để dùng OrderModel::createFromCart
 /**
  * PaymentController
  *
@@ -214,6 +216,51 @@ public function checkout(): string
     }
 
     /**
+     * Tạo đơn hàng trong DB từ giỏ hiện tại sau khi thanh toán thành công
+     * Trả về ID đơn hàng trong DB, hoặc null nếu không tạo được
+     */
+    private function createOrderAfterPayment(string $note = ''): ?int
+    {
+        $cart = $_SESSION['cart'] ?? [];
+        if (empty($cart)) {
+            // Không còn giỏ => không tạo đơn được
+            return null;
+        }
+
+        // Lấy user hiện tại
+        $currentUser = $_SESSION['user'] ?? null;
+        if (!$currentUser || empty($currentUser['id'])) {
+            return null;
+        }
+
+        $userId = (int)$currentUser['id'];
+
+        // Lấy địa chỉ giao hàng (mặc định: phần tử đầu tiên)
+        $addresses = UserModel::getAddresses($userId);
+        $shipping  = $addresses[0] ?? null;   // nếu hàm createFromCart cho phép null thì vẫn OK
+
+        // Nếu anh muốn bắt buộc phải có shipping thì có thể check ở đây
+        // if (!$shipping) { return null; }
+
+        // 🔹 TẠO ĐƠN HÀNG TRONG DB
+        // Giả sử OrderModel::createFromCart:
+        // createFromCart(int $userId, ?array $shipping, array $cart, string $shippingStatus = 'pending', ?string $note = null): int
+        $orderId = OrderModel::createFromCart(
+            $userId,
+            $shipping,
+            $cart,
+            'pending',          // shipping_status ban đầu
+            $note               // ghi chú: "Thanh toán VNPay/MoMo ..."
+        );
+
+        // Xoá giỏ sau khi tạo đơn
+        unset($_SESSION['cart']);
+
+        return $orderId;
+    }
+
+
+    /**
      * VNPay redirect user về đây sau khi thanh toán xong
      * URL: GET index.php?controller=payment&action=vnpayReturn
      */
@@ -245,14 +292,23 @@ public function checkout(): string
 
         $secureHashCheck = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        $isValid = ($secureHashCheck === $vnp_SecureHash);
-        $rspCode = $inputData['vnp_ResponseCode'] ?? null; // "00" = thành công
-        $orderId = $inputData['vnp_TxnRef'] ?? null;
-        $amount  = $inputData['vnp_Amount'] ?? null;
+        $isValid   = ($secureHashCheck === $vnp_SecureHash);
+        $rspCode   = $inputData['vnp_ResponseCode'] ?? null; // "00" = thành công
+        $txnRef    = $inputData['vnp_TxnRef']       ?? null; // mã giao dịch bên VNPay
+        $amount    = $inputData['vnp_Amount']       ?? null;
+
+        $dbOrderId = null;
 
         if ($isValid && $rspCode === '00') {
-            unset($_SESSION['cart']);
-            $message = "Thanh toán VNPay thành công. Mã giao dịch: " . htmlspecialchars((string)$orderId);
+            // 🔹 Tạo đơn hàng thật trong DB từ giỏ
+            $dbOrderId = $this->createOrderAfterPayment(
+                'Thanh toán VNPay thành công - mã giao dịch: ' . $txnRef
+            );
+
+            $message = "Thanh toán VNPay thành công.";
+            if ($dbOrderId) {
+                $message .= " Mã đơn hàng của bạn: #" . htmlspecialchars((string)$dbOrderId);
+            }
             $success = true;
         } else {
             $message = "Thanh toán VNPay thất bại hoặc dữ liệu không hợp lệ.";
@@ -260,12 +316,14 @@ public function checkout(): string
         }
 
         return $this->render('payment/vnpay_return', [
-            'success' => $success,
-            'message' => $message,
-            'orderId' => $orderId,
-            'amount'  => $amount,
+            'success'   => $success,
+            'message'   => $message,
+            'orderId'   => $dbOrderId ?: $txnRef, // ưu tiên ID DB, fallback mã giao dịch
+            'amount'    => $amount,
+            'txnRef'    => $txnRef,
         ]);
     }
+
 
     /**
      * Thanh toán bằng MoMo: gọi API create và redirect payUrl
@@ -358,47 +416,90 @@ public function checkout(): string
     public function momoReturn(): string
     {
         $resultCode = $_GET['resultCode'] ?? null; // 0 = thành công
-        $orderId    = $_GET['orderId']    ?? null;
+        $orderIdGw  = $_GET['orderId']    ?? null; // mã order bên MoMo (anh gửi từ payWithMomo)
         $amount     = $_GET['amount']     ?? null;
         $message    = $_GET['message']    ?? '';
 
+        $dbOrderId = null;
+
         if ($resultCode === '0') {
-            unset($_SESSION['cart']);
+            // 🔹 Tạo đơn hàng thật trong DB từ giỏ
+            $dbOrderId = $this->createOrderAfterPayment(
+                'Thanh toán MoMo thành công - mã giao dịch: ' . $orderIdGw
+            );
+
             $success = true;
-            $msg     = "Thanh toán MoMo thành công. Mã đơn: " . htmlspecialchars((string)$orderId);
+            $msg     = "Thanh toán MoMo thành công.";
+            if ($dbOrderId) {
+                $msg .= " Mã đơn hàng của bạn: #" . htmlspecialchars((string)$dbOrderId);
+            }
         } else {
             $success = false;
             $msg     = "Thanh toán MoMo thất bại: " . htmlspecialchars($message);
         }
 
         return $this->render('payment/momo_return', [
-            'success' => $success,
-            'message' => $msg,
-            'orderId' => $orderId,
-            'amount'  => $amount,
+            'success'  => $success,
+            'message'  => $msg,
+            'orderId'  => $dbOrderId ?: $orderIdGw, // ưu tiên ID DB
+            'amount'   => $amount,
+            'orderIdGw'=> $orderIdGw,
         ]);
     }
+
 
     /**
      * Thanh toán khi nhận hàng (COD)
      */
-    private function payWithCod(int $totalAmount): string
-    {
-        $cart = $_SESSION['cart'] ?? [];
-        if (empty($cart)) {
-            $this->flash('error', 'Giỏ hàng đang trống');
-            $this->redirect('index.php?controller=cart&action=index');
-            return '';
-        }
-
-        $orderId = time(); // tạm dùng timestamp làm mã đơn
-
-        // Thực tế: lưu vào bảng orders (payment_method = 'cod', status = 'pending')
-        unset($_SESSION['cart']);
-
-        return $this->render('payment/cod_success', [
-            'orderId' => $orderId,
-            'amount'  => $totalAmount,
-        ]);
+private function payWithCod(int $totalAmount): string
+{
+    $cart = $_SESSION['cart'] ?? [];
+    if (empty($cart)) {
+        $this->flash('error', 'Giỏ hàng đang trống');
+        $this->redirect('index.php?controller=cart&action=index');
+        return '';
     }
+
+    // Lấy user hiện tại
+    $currentUser = $_SESSION['user'] ?? null;
+    if (!$currentUser || empty($currentUser['id'])) {
+        $this->flash('error', 'Vui lòng đăng nhập trước khi thanh toán');
+        $this->redirect('index.php?controller=auth&action=login');
+        return '';
+    }
+
+    $userId = (int)$currentUser['id'];
+
+    // Lấy địa chỉ giao hàng mặc định
+    $addresses = UserModel::getAddresses($userId);
+    $shipping  = $addresses[0] ?? null;   // hoặc chọn theo ID địa chỉ
+
+    if (!$shipping) {
+        $this->flash('error', 'Vui lòng cập nhật địa chỉ giao hàng trước khi thanh toán');
+        $this->redirect('index.php?controller=account&action=addresses');
+        return '';
+    }
+
+    // 🔹 TẠO ĐƠN HÀNG TRONG DB
+    // Giả sử OrderModel::createFromCart có dạng:
+    // createFromCart(int $userId, ?array $shipping, array $cart, string $shippingStatus = 'pending', ?string $note = null): int
+    $orderId = OrderModel::createFromCart(
+        $userId,
+        $shipping,
+        $cart,
+        'pending',              // shipping_status ban đầu
+        'Thanh toán COD'        // note
+    );
+
+    // (tuỳ anh) Có thể lưu thêm vào bảng payment, trạng thái "cod_pending"...
+
+    // Xoá giỏ hàng sau khi đã lưu đơn
+    unset($_SESSION['cart']);
+
+    return $this->render('payment/cod_success', [
+        'orderId' => $orderId,      // đây là ID thật trong DB
+        'amount'  => $totalAmount,
+    ]);
+}
+
 }
