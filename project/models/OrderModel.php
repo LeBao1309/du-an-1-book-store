@@ -8,7 +8,6 @@ class OrderModel extends BaseModel
      */
     public static function getHistory(int $userId): array
     {
-        // JOIN bảng payment để lấy phương thức thanh toán (COD/VNPAY...)
         $sql = "SELECT o.*, p.payment_method 
                 FROM orders o
                 LEFT JOIN payment p ON o.id = p.order_id
@@ -52,5 +51,133 @@ class OrderModel extends BaseModel
         $stmt = self::db()->prepare($sql);
         $stmt->execute([':oid' => $orderId]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Tạo đơn hàng từ giỏ hàng
+     * - GHI ĐÚNG VÀO BẢNG orders & order_items THEO SCHEMA HIỆN TẠI
+     */
+    public static function createFromCart(
+        int $userId,
+        ?array $shipping,
+        array $cart,
+        string $shippingStatus = 'pending',
+        ?string $note = null
+    ): int {
+        if (empty($cart)) {
+            throw new \RuntimeException('Giỏ hàng trống, không thể tạo đơn.');
+        }
+
+        $pdo = self::db();
+        $pdo->beginTransaction();
+
+        try {
+            // 1. TÍNH TỔNG TIỀN (theo schema: cột 'total')
+            $totalAmount = 0;
+
+            foreach ($cart as $item) {
+                $qty   = (int)($item['quantity'] ?? 0);
+                $price = (float)($item['price'] ?? 0);
+                if ($qty > 0 && $price >= 0) {
+                    $totalAmount += $qty * $price;
+                }
+            }
+
+            // 2. LẤY THÔNG TIN ĐỊA CHỈ (NẾU CÓ)
+            // user_address_id: id trong bảng user_address
+            $userAddressId   = $shipping['id'] ?? null;
+            $shippingPhone   = $shipping['shipping_phone'] ?? null;
+            $shippingAddress = $shipping['full_address']   ?? null;
+
+            if (empty($shippingAddress)) {
+                // tuỳ anh: có thể throw hoặc để NULL và DB báo lỗi NOT NULL
+                throw new \RuntimeException('Thiếu địa chỉ giao hàng (shipping_address).');
+            }
+
+            // 3. INSERT VÀO BẢNG orders
+            // LƯU Ý: cột trong DB là: user_id, user_address_id, total,
+            //        shipping_status, shipping_address, shipping_phone, note
+            $sqlOrder = "
+                INSERT INTO orders (
+                    user_id,
+                    user_address_id,
+                    total,
+                    shipping_status,
+                    shipping_address,
+                    shipping_phone,
+                    note,
+                    created_at
+                )
+                VALUES (
+                    :user_id,
+                    :user_address_id,
+                    :total,
+                    :shipping_status,
+                    :shipping_address,
+                    :shipping_phone,
+                    :note,
+                    NOW()
+                )
+            ";
+
+            $stmt = $pdo->prepare($sqlOrder);
+            $stmt->execute([
+                ':user_id'         => $userId,
+                ':user_address_id' => $userAddressId,
+                ':total'           => $totalAmount,
+                ':shipping_status' => $shippingStatus,
+                ':shipping_address'=> $shippingAddress,
+                ':shipping_phone'  => $shippingPhone,
+                ':note'            => $note,
+            ]);
+
+            $orderId = (int)$pdo->lastInsertId();
+
+            // 4. INSERT CÁC DÒNG order_items
+            // CỘT TRONG DB: order_id, variant_id, quantity, price, subtotal
+            $sqlItem = "
+                INSERT INTO order_items (
+                    order_id,
+                    variant_id,
+                    quantity,
+                    price,
+                    subtotal
+                ) VALUES (
+                    :order_id,
+                    :variant_id,
+                    :quantity,
+                    :price,
+                    :subtotal
+                )
+            ";
+            $stmtItem = $pdo->prepare($sqlItem);
+
+            foreach ($cart as $item) {
+                $qty   = (int)($item['quantity'] ?? 0);
+                $price = (float)($item['price']    ?? 0);
+                $sub   = $qty * $price;
+
+                // KEY NÀY PHẢI ĐÚNG VỚI GIỎ HÀNG (anh đang dùng variant_id trong cart)
+                $variantId = (int)($item['variant_id'] ?? 0);
+
+                if ($variantId <= 0 || $qty <= 0) {
+                    continue;
+                }
+
+                $stmtItem->execute([
+                    ':order_id'   => $orderId,
+                    ':variant_id' => $variantId,
+                    ':quantity'   => $qty,
+                    ':price'      => $price,
+                    ':subtotal'   => $sub,
+                ]);
+            }
+
+            $pdo->commit();
+            return $orderId;
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }
