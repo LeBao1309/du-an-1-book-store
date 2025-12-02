@@ -1,6 +1,5 @@
 <?php
 $newBooks = $newBooks ?? [];
-$bestSellers = $bestSellers ?? [];
 ?>
 
 <section class="hero">
@@ -10,41 +9,15 @@ $bestSellers = $bestSellers ?? [];
         🚀 Khám phá tri thức mới
       </span>
       <h1>Đọc sách là cách<br/>để bạn nhìn ra thế giới</h1>
-      <p>
-        Hàng ngàn đầu sách chọn lọc đang chờ bạn.
-        Giao hàng nhanh, đóng gói cẩn thận và quà tặng kèm hấp dẫn.
-      </p>
-      
+      <p>Hàng ngàn đầu sách chọn lọc đang chờ bạn. Giao hàng nhanh, đóng gói cẩn thận.</p>
       <div class="hero-actions">
-        <a href="index.php?controller=category&action=index" class="btn btn-light">
-          Mua ngay
-        </a>
-        <a href="#homeTrending" class="btn btn-ghost" style="border: 1px solid rgba(255,255,255,0.5);">
-          Xem sách mới ↓
-        </a>
+        <a href="index.php?controller=category&action=index" class="btn btn-light">Mua ngay</a>
+        <a href="#homeTrending" class="btn btn-ghost" style="border: 1px solid rgba(255,255,255,0.5);">Xem sách mới ↓</a>
       </div>
     </div>
-
     <div class="hero-art">
       <img src="https://cdn-icons-png.flaticon.com/512/3330/3330314.png" alt="Book Store Banner"/>
     </div>
-  </div>
-</section>
-
-<section class="container section" id="category">
-  <div class="section-head">
-    <h2>Danh mục nổi bật</h2>
-    <div class="dots">
-      <button class="dot prev" data-target="#catTrack">‹</button>
-      <button class="dot next" data-target="#catTrack">›</button>
-    </div>
-  </div>
-  <div class="track" id="catTrack">
-    <a class="pill" href="index.php?controller=category&action=index&id=1">Khoa học</a>
-    <a class="pill" href="index.php?controller=category&action=index&id=2">Văn học</a>
-    <a class="pill" href="index.php?controller=category&action=index&id=3">Kinh tế</a>
-    <a class="pill" href="index.php?controller=category&action=index&id=4">Kỹ năng sống</a>
-    <a class="pill" href="index.php?controller=category&action=index&id=5">Thiếu nhi</a>
   </div>
 </section>
 
@@ -65,71 +38,59 @@ $bestSellers = $bestSellers ?? [];
         ?>
 
         <div class="card h-100 shadow-sm product-card">
-          
           <div class="card-img-container position-relative">
-              <a href="index.php?controller=account&action=addWishlist&id=<?= (int)$book['id'] ?>" 
-                 class="btn-wishlist-overlay" 
-                 title="Thêm vào yêu thích">
-                 ♥
-              </a>
+              <a href="index.php?controller=account&action=addWishlist&id=<?= (int)$book['id'] ?>" class="btn-wishlist-overlay" title="Thêm vào yêu thích">♥</a>
               <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>" class="d-block w-100 h-100">
-                <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
-                     class="card-img-top"
-                     alt="<?= htmlspecialchars($book['title']) ?>">
+                <img src="<?= htmlspecialchars($imageSrc) ?>" class="card-img-top" alt="<?= htmlspecialchars($book['title']) ?>">
               </a>
           </div>
           
-          <div class="card-body d-flex flex-column pb-5"> 
-            <p class="card-author text-muted small mb-1">Tác giả</p> 
+          <div class="card-body d-flex flex-column pb-4"> 
+            <p class="card-author text-muted small mb-1">
+                 <?= htmlspecialchars($book['author_names'] ?? 'Đang cập nhật') ?>
+            </p> 
+            
             <h6 class="card-title product-title mb-2">
               <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>">
                 <?= htmlspecialchars($book['title']) ?>
               </a>
             </h6>
+
+            <?php if(!empty($book['publisher_name'])): ?>
+               <div class="mb-2">
+                   <span class="badge bg-light text-dark border fw-normal" style="font-size: 11px;">
+                       <?= htmlspecialchars($book['publisher_name']) ?>
+                   </span>
+               </div>
+            <?php endif; ?>
+
             <div class="price-wrap mt-auto">
-              <span class="product-price">
+              <span class="product-price text-danger fw-bold fs-5">
                 <?= number_format($book['display_price'] ?? 0) ?>₫
               </span>
             </div>
           </div>
 
-          <div class="card-footer">
-             <div class="d-flex gap-1">
-                
+          <div class="card-footer bg-white border-top-0">
+             <div class="d-flex gap-2">
                 <form method="get" action="index.php" class="m-0 flex-grow-1">
                   <input type="hidden" name="controller" value="cart">
                   <input type="hidden" name="action" value="add">
                   <input type="hidden" name="id" value="<?= (int)$book['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-primary w-100" title="Thêm vào giỏ hàng">
-                    + Giỏ hàng
+                  <button type="submit" class="btn btn-sm btn-primary w-100" title="Thêm vào giỏ">
+                    + Giỏ
                   </button>
                 </form>
-
-                <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>" 
-                   class="btn btn-sm btn-outline-dark flex-grow-1" title="Xem chi tiết">
-                  Xem chi tiết
+                <a href="index.php?controller=product&action=detail&id=<?= (int)$book['id'] ?>" class="btn btn-sm btn-outline-dark flex-grow-1" title="Xem chi tiết">
+                  Xem
                 </a>
-
              </div>
           </div>
-
         </div>
       <?php endforeach; ?>
     <?php else: ?>
       <p>Chưa có sản phẩm nào.</p>
     <?php endif; ?>
-  </div>
-</section>
-
-<section class="container section">
-  <div class="section-head">
-    <h2>Bán chạy nhất</h2>
-    <a class="see-all" href="index.php?controller=category&action=index">Xem tất cả</a>
-  </div>
-  <div class="grid cards-6" id="homeBestseller">
-     <?php if(empty($bestSellers)): ?>
-        <p class="text-muted">Đang cập nhật...</p>
-     <?php endif; ?>
   </div>
 </section>
 

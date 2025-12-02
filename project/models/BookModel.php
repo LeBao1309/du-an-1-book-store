@@ -1,17 +1,25 @@
 <?php
-
 require_once __DIR__ . '/BaseModel.php';
+
 class Book extends BaseModel {
-    
-    // === HÀM MỚI 3: LẤY SẢN PHẨM MỚI CHO TRANG CHỦ ===
+
+    // 1. Lấy sách mới cho trang chủ
     public static function getNewestProducts($limit = 8) {
-        $sql = "SELECT b.id, b.title, 
-                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
-                        MIN(i.image_url) as image_url
+        $sql = "SELECT b.id, b.title, b.slug,
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url,
+                       GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
+                       p.name as publisher_name
                 FROM books b
                 LEFT JOIN book_variants v ON v.book_id = b.id
-                LEFT JOIN book_images i ON i.book_id = b.id
-                GROUP BY b.id, b.title
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                LEFT JOIN book_authors ba ON b.id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.id
+                LEFT JOIN book_publisher bp ON b.id = bp.book_id
+                LEFT JOIN publisher p ON bp.publisher_id = p.id
+                
+                WHERE b.is_active = 1
+                GROUP BY b.id, b.title, b.slug, p.name
                 ORDER BY b.id DESC
                 LIMIT ?";
         
@@ -20,19 +28,157 @@ class Book extends BaseModel {
         $stmt->execute();
         return $stmt->fetchAll();
     }
-    // === HẾT HÀM MỚI ===
 
-    // === HÀM MỚI 4: LẤY SẢN PHẨM LIÊN QUAN (CÙNG DANH MỤC) ===
-    // CHỈ GIỮ LẠI ĐỊNH NGHĨA NÀY, ĐỊNH NGHĨA DƯỚI ĐÃ BỊ XÓA
-    public static function getRelatedProducts($bookId, $categoryId, $limit = 4) {
-        $sql = "SELECT b.id, b.title, 
-                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
-                        MIN(i.image_url) as image_url
+    // 2. Hàm Lọc Đa Năng (Danh mục + Từ khóa + Lọc Giá)
+    public static function filter($params = [], $limit = 9, $offset = 0) {
+        $sql = "SELECT b.id, b.title, b.slug, b.category_id,
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url,
+                       GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
+                       p.name as publisher_name
                 FROM books b
                 LEFT JOIN book_variants v ON v.book_id = b.id
-                LEFT JOIN book_images i ON i.book_id = b.id
-                WHERE b.category_id = ? AND b.id != ?
-                GROUP BY b.id, b.title
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                LEFT JOIN book_authors ba ON b.id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.id
+                LEFT JOIN book_publisher bp ON b.id = bp.book_id
+                LEFT JOIN publisher p ON bp.publisher_id = p.id
+                WHERE b.is_active = 1 ";
+
+        $bindings = [];
+
+        // Lọc Danh mục (Lấy cả cha lẫn con)
+        if (!empty($params['category_id'])) {
+            $sql .= " AND (b.category_id = ? OR b.category_id IN (SELECT id FROM categories WHERE parent_id = ?)) ";
+            $bindings[] = $params['category_id'];
+            $bindings[] = $params['category_id'];
+        }
+
+        // Lọc từ khóa (cho trang danh sách thông thường)
+        if (!empty($params['keyword'])) {
+            $sql .= " AND b.title LIKE ? ";
+            $bindings[] = '%' . $params['keyword'] . '%';
+        }
+
+        $sql .= " GROUP BY b.id, b.title, b.slug, p.name ";
+
+        // Lọc Giá (Dùng HAVING vì display_price là alias được tính toán)
+        $havingClause = [];
+        if (!empty($params['min_price'])) {
+            $havingClause[] = "display_price >= ?";
+            $bindings[] = $params['min_price'];
+        }
+        if (!empty($params['max_price'])) {
+            $havingClause[] = "display_price <= ?";
+            $bindings[] = $params['max_price'];
+        }
+
+        if (!empty($havingClause)) {
+            $sql .= " HAVING " . implode(' AND ', $havingClause);
+        }
+
+        // Sắp xếp
+        $sort = $params['sort'] ?? 'newest';
+        if ($sort === 'price-asc') $sql .= " ORDER BY display_price ASC ";
+        elseif ($sort === 'price-desc') $sql .= " ORDER BY display_price DESC ";
+        else $sql .= " ORDER BY b.id DESC ";
+
+        $sql .= " LIMIT $limit OFFSET $offset";
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute($bindings);
+        return $stmt->fetchAll();
+    }
+
+    // 3. Đếm tổng (để phân trang)
+    public static function countFilter($params = []) {
+        // Logic đếm đơn giản hóa để tránh lỗi query phức tạp
+        $sql = "SELECT COUNT(DISTINCT b.id) 
+                FROM books b
+                WHERE b.is_active = 1 ";
+        
+        $bindings = [];
+        if (!empty($params['category_id'])) {
+            $sql .= " AND (b.category_id = ? OR b.category_id IN (SELECT id FROM categories WHERE parent_id = ?)) ";
+            $bindings[] = $params['category_id'];
+            $bindings[] = $params['category_id'];
+        }
+        if (!empty($params['keyword'])) {
+            $sql .= " AND b.title LIKE ? ";
+            $bindings[] = '%' . $params['keyword'] . '%';
+        }
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute($bindings);
+        return $stmt->fetchColumn();
+    }
+
+    // 4. TÌM KIẾM THÔNG MINH (Ajax Search)
+    // Tìm cả Tên sách, Tác giả, NXB
+    public static function searchByName($keyword, $limit = 5) {
+        $sql = "SELECT b.id, b.title, b.slug,
+                       MIN(i.image_url) as image_url,
+                       MIN(IFNULL(v.sale_price, v.price)) as price,
+                       GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names
+                FROM books b
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                -- JOIN các bảng liên quan để tìm kiếm
+                LEFT JOIN book_authors ba ON b.id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.id
+                LEFT JOIN book_publisher bp ON b.id = bp.book_id
+                LEFT JOIN publisher p ON bp.publisher_id = p.id
+                
+                WHERE b.is_active = 1 
+                  AND (
+                      b.title LIKE ? 
+                      OR a.name LIKE ? 
+                      OR p.name LIKE ?
+                  )
+                GROUP BY b.id, b.title, b.slug
+                LIMIT ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $term = "%$keyword%"; // Từ khóa tìm kiếm dạng %abc%
+        
+        $stmt->bindValue(1, $term);
+        $stmt->bindValue(2, $term);
+        $stmt->bindValue(3, $term);
+        $stmt->bindValue(4, $limit, \PDO::PARAM_INT);
+        
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // --- Các hàm cơ bản khác (Giữ nguyên) ---
+    public static function findById($id) {
+        $sql = "SELECT * FROM books WHERE id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+    public static function getVariants($bookId) {
+        $sql = "SELECT id, format, price, sale_price, stock FROM book_variants WHERE book_id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$bookId]);
+        return $stmt->fetchAll();
+    }
+    public static function getImages($bookId) {
+        $sql = "SELECT image_url, sort_order FROM book_images WHERE book_id = ? ORDER BY sort_order ASC";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$bookId]);
+        return $stmt->fetchAll();
+    }
+    
+    public static function getRelatedProducts($bookId, $categoryId, $limit = 4) {
+        $sql = "SELECT b.id, b.title, b.slug,
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                WHERE b.category_id = ? AND b.id != ? AND b.is_active = 1
+                GROUP BY b.id, b.title, b.slug
                 ORDER BY RAND()
                 LIMIT ?";
         
@@ -41,157 +187,6 @@ class Book extends BaseModel {
         $stmt->bindValue(2, $bookId, \PDO::PARAM_INT);
         $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
-    }
-    // === HẾT HÀM MỚI 4 ===
-
-    // === HÀM ĐÃ SỬA (THÊM $sort) ===
-    public static function searchByTitle($query, $limit, $offset, $sort = 'newest') {
-        $searchTerm = '%' . $query . '%'; 
-
-        // Logic Sắp xếp
-        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
-        if ($sort === 'price-asc') {
-            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
-        } elseif ($sort === 'price-desc') {
-            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
-        }
-
-        $sql = "SELECT b.id, b.title, 
-                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
-                        MIN(i.image_url) as image_url
-                FROM books b
-                LEFT JOIN book_variants v ON v.book_id = b.id
-                LEFT JOIN book_images i ON i.book_id = b.id
-                WHERE b.title LIKE ?
-                GROUP BY b.id, b.title
-                $orderBy
-                LIMIT ? OFFSET ?";
-        
-        $stmt = self::db()->prepare($sql);
-        $stmt->bindValue(1, $searchTerm); // Dấu ? thứ 1
-        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2
-        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3
-        $stmt->execute(); 
-        return $stmt->fetchAll(); 
-    }
-
-    // === HÀM MỚI (CHO TÌM KIẾM): ĐẾM SỐ SÁCH THEO TÊN (cho phân trang) ===
-    public static function countByTitle($query) {
-        $searchTerm = '%' . $query . '%'; // Thêm dấu % cho SQL LIKE
-
-        $sql = "SELECT COUNT(id) FROM books WHERE title LIKE ?";
-        $stmt = self::db()->prepare($sql);
-        $stmt->bindValue(1, $searchTerm);
-        $stmt->execute();
-        return $stmt->fetchColumn(); 
-    }
-
-
-    // === HÀM MỚI 1: Đếm sách theo danh mục ===
-    public static function countByCategory($categoryId) {
-        $sql = "SELECT COUNT(id) FROM books WHERE category_id = ?";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([$categoryId]);
-        return $stmt->fetchColumn(); 
-    }
-
-    // === HÀM CŨ (ĐÃ SỬA - THÊM $sort) ===
-    public static function getByCategory($categoryId, $limit, $offset, $sort = 'newest') {
-        
-        // Logic Sắp xếp
-        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
-        if ($sort === 'price-asc') {
-            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
-        } elseif ($sort === 'price-desc') {
-            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
-        }
-
-        $sql = "SELECT b.id, b.title, 
-                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
-                        MIN(i.image_url) as image_url
-                FROM books b
-                LEFT JOIN book_variants v ON v.book_id = b.id
-                LEFT JOIN book_images i ON i.book_id = b.id
-                WHERE b.category_id = ?
-                GROUP BY b.id, b.title
-                $orderBy
-                LIMIT ? OFFSET ?";
-        
-        $stmt = self::db()->prepare($sql);
-
-        $stmt->bindValue(1, $categoryId); // Dấu ? thứ 1
-        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 2
-        $stmt->bindValue(3, $offset, \PDO::PARAM_INT); // Dấu ? thứ 3
-        $stmt->execute(); 
-
-        return $stmt->fetchAll(); 
-    }
-
-    // === HÀM MỚI 2: Đếm tất cả sách ===
-    public static function countAll() {
-        $sql = "SELECT COUNT(id) FROM books";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchColumn();
-    }
-
-    // === HÀM CŨ (ĐÃ SỬA - THÊM $sort) ===
-    public static function getAll($limit, $offset, $sort = 'newest') {
-
-        // Logic Sắp xếp
-        $orderBy = "ORDER BY b.id DESC"; // Mới nhất (mặc định)
-        if ($sort === 'price-asc') {
-            $orderBy = "ORDER BY display_price ASC"; // Giá tăng dần
-        } elseif ($sort === 'price-desc') {
-            $orderBy = "ORDER BY display_price DESC"; // Giá giảm dần
-        }
-
-        $sql = "SELECT b.id, b.title, 
-                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
-                        MIN(i.image_url) as image_url
-                FROM books b
-                LEFT JOIN book_variants v ON v.book_id = b.id
-                LEFT JOIN book_images i ON i.book_id = b.id
-                GROUP BY b.id, b.title
-                $orderBy
-                LIMIT ? OFFSET ?";
-        
-        $stmt = self::db()->prepare($sql);
-
-        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);  // Dấu ? thứ 1
-        $stmt->bindValue(2, $offset, \PDO::PARAM_INT); // Dấu ? thứ 2
-        $stmt->execute();
-
-        return $stmt->fetchAll();
-    }
-
-    // (Các hàm còn lại giữ nguyên)
-    public static function findById($id) {
-        $sql = "SELECT * FROM books WHERE id = ?";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([$id]);
-        return $stmt->fetch();
-    }
-
-    public static function getVariants($bookId) {
-        $sql = "SELECT id, format, price, sale_price, stock
-                FROM book_variants 
-                WHERE book_id = ?";
-        
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([$bookId]);
-        return $stmt->fetchAll();
-    }
-
-    public static function getImages($bookId) {
-        $sql = "SELECT image_url, sort_order 
-                FROM book_images 
-                WHERE book_id = ? 
-                ORDER BY sort_order ASC";
-        
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([$bookId]);
         return $stmt->fetchAll();
     }
 }
