@@ -180,4 +180,28 @@ class OrderModel extends BaseModel
             throw $e;
         }
     }
+    
+    /**
+     * Kiểm tra user đã mua sản phẩm (book_id) chưa
+     * Chỉ tính đơn hàng đã giao (delivered)
+     */
+    public static function hasUserPurchasedBook(int $userId, int $bookId): bool
+    {
+        $sql = "SELECT COUNT(*) as count
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN book_variants bv ON oi.variant_id = bv.id
+                WHERE o.user_id = :user_id 
+                  AND bv.book_id = :book_id
+                  AND o.shipping_status = 'delivered'";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':book_id' => $bookId
+        ]);
+        
+        $result = $stmt->fetch();
+        return $result && $result['count'] > 0;
+    }
 }

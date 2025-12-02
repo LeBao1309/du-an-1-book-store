@@ -111,9 +111,9 @@ if (isset($_GET['controller']) && $_GET['controller'] === 'category') {
       <ul class="nav">
         <li><a href="index.php?controller=home&action=index">Trang chủ</a></li>
         <li><a href="index.php?controller=category&action=index">Danh mục</a></li>
+        <li><a href="index.php?controller=about&action=index">Giới thiệu</a></li>
         <li><a href="#">Blog</a></li>
-        <li><a href="#">Giới thiệu</a></li>
-        <li><a href="#">Liên hệ</a></li>
+        <li><a href="index.php?controller=contact&action=index">Liên hệ</a></li>
       </ul>
     </div>
   </header>

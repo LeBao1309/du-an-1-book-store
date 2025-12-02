@@ -102,9 +102,18 @@ class CartController extends BaseController
 
         $this->flash('success', 'Đã thêm sách vào giỏ hàng');
 
-        // Quay lại trang trước (nếu có), không có thì về trang giỏ hàng
-        $backUrl = $_SERVER['HTTP_REFERER'] ?? 'index.php?controller=cart&action=index';
-        $this->redirect($backUrl);
+        // Kiểm tra có tham số redirect không
+        $redirectParam = $_GET['redirect'] ?? '';
+        
+        if ($redirectParam === 'cart') {
+            // Nếu có redirect=cart thì chuyển tới trang giỏ hàng
+            $this->redirect('index.php?controller=cart&action=index');
+        } else {
+            // Ngược lại quay lại trang trước
+            $backUrl = $_SERVER['HTTP_REFERER'] ?? 'index.php?controller=cart&action=index';
+            $this->redirect($backUrl);
+        }
+        
         return '';
     }
 
