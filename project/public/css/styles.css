@@ -212,85 +212,175 @@ a{color:inherit;text-decoration:none}
 .pagination .page-link { color: #20c997; border: 1px solid #dee2e6; }
 .pagination .page-link:hover { background-color: #d1f4ee; border-color: #1aa07a; color: #1aa07a; }
 .pagination .page-item.disabled .page-link { color: #6c757d; background-color: #fff; border-color: #dee2e6; }
+/* ==========================================================================
+   7. FOOTER PREMIUM (XỊN XÒ)
+   ========================================================================== */
+.footer-section {
+    background-color: #0f172a; /* Màu nền tối sang trọng (Dark Slate) */
+    color: #94a3b8;            /* Màu chữ xám sáng dễ đọc */
+    font-size: 14px;  
+    position: relative;
+    margin-top: 80px;
+}
+
+/* Đường line 7 màu hoặc màu Brand ở trên cùng */
+.footer-top-line {
+    height: 4px;
+    background: linear-gradient(90deg, #0ea5a5, #06b6d4, #3b82f6);
+    width: 100%;
+}
 
 /* ==========================================================================
-   7. FOOTER (CHUẨN XỊN - 4 CỘT)
+   CẬP NHẬT LẠI KÍCH THƯỚC LOGO FOOTER CHO VỪA VẶN
    ========================================================================== */
-.footer {
-  background-color: #0f172a; /* Màu tối */
-  color: #cbd5e1;
-  padding-top: 70px; margin-top: 100px; font-size: 14px;
-  border-top: 5px solid #0ea5a5;
+
+/* Brand (Logo) container */
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Giảm khoảng cách giữa ảnh và chữ một chút */
+    text-decoration: none;
+    margin-bottom: 15px;
 }
 
-.footer-grid {
-  display: grid;
-  /* CẤU HÌNH 4 CỘT CHUẨN */
-  grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
-  gap: 40px;
-  padding-bottom: 50px;
-  border-bottom: 1px solid #334155;
+/* Ảnh Logo (amban.png) */
+.footer-brand img {
+    height: 45px; /* <--- GIẢM TỪ 60px XUỐNG 45px */
+    width: auto;  /* Để chiều rộng tự động theo tỉ lệ */
+    object-fit: contain;
 }
 
-.footer h4 {
-  color: #fff; font-size: 17px; text-transform: uppercase;
-  letter-spacing: 1px; margin-bottom: 25px; font-weight: 700;
+/* Chữ "WiseBook Store" bên cạnh */
+.footer-brand span {
+    font-size: 18px; /* <--- GIẢM TỪ 22px XUỐNG 18px */
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
-.footer ul { list-style: none; padding: 0; margin: 0; }
-.footer ul li { margin-bottom: 14px; }
-.footer ul li a { color: #cbd5e1; text-decoration: none; transition: all 0.2s; display: inline-block; }
-.footer ul li a:hover { color: #2dd4bf; transform: translateX(5px); }
+/* Thông tin liên hệ */
+.contact-info .item {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #cbd5e1;
+}
 
-/* Form Newsletter */
-.newsletter-form { position: relative; display: block; }
-.newsletter-form input {
-  width: 100%; padding: 14px 16px; border-radius: 8px;
-  border: 1px solid #334155; background: #1e293b; color: #fff; outline: none;
+/* Tiêu đề cột */
+.footer-heading {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
 }
-.newsletter-form button {
-  position: absolute; top: 5px; right: 5px; bottom: 5px;
-  background: #0ea5a5; color: #fff; border: none;
-  padding: 0 15px; border-radius: 6px; font-weight: 600; cursor: pointer;
-}
-.newsletter-form button:hover { background: #0d9494; }
 
-/* Footer Icons */
-.social-icon {
-    width: 36px; height: 36px; border-radius: 50%;
+/* Danh sách Link */
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.footer-links li {
+    margin-bottom: 12px;
+}
+.footer-links a {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+.footer-links a:hover {
+    color: #2dd4bf; /* Màu xanh sáng khi hover */
+    transform: translateX(5px); /* Hiệu ứng trượt sang phải */
+}
+
+/* Form đăng ký tin */
+.subscribe-form {
+    display: flex;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1e293b;
+    border: 1px solid #334155;
+}
+.subscribe-form input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 12px 15px;
+    color: #fff;
+    outline: none;
+    font-size: 14px;
+}
+.subscribe-form button {
+    background: #0ea5a5;
+    color: #fff;
+    border: none;
+    padding: 0 20px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+.subscribe-form button:hover {
+    background: #0d9494;
+}
+
+/* Social Icons (Xịn) */
+.social-links {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.sc-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #1e293b;
     display: flex; align-items: center; justify-content: center;
-    color: white !important; text-decoration: none; font-weight: bold;
-    font-size: 14px; transition: transform 0.2s;
+    color: #fff;
+    transition: all 0.3s ease;
+    border: 1px solid #334155;
 }
-.social-icon:hover { transform: translateY(-3px); }
+.sc-icon:hover {
+    transform: translateY(-3px);
+    border-color: transparent;
+}
+.sc-icon.fb:hover { background: #1877f2; }
+.sc-icon.insta:hover { background: #e1306c; }
+.sc-icon.tiktok:hover { background: #000; border-color: #fff; }
 
-.pay-icon {
-background: #fff; padding: 6px 12px; border-radius: 4px;
-    font-size: 11px; color: #333; font-weight: 800;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+/* Payment Badges */
+.pay-badge {
+    background: #fff;
+    color: #0f172a;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
 }
 
+/* Bottom Copyright */
 .footer-bottom {
-  padding: 25px 0; text-align: center; background: #020617; color: #64748b; font-size: 13px;
+    background-color: #020617;
+    padding: 20px 0;
+    border-top: 1px solid #1e293b;
+    font-size: 13px;
+}
+.footer-legal a {
+    color: #64748b;
+    text-decoration: none;
+    margin: 0 5px;
+}
+.footer-legal a:hover {
+    color: #fff;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1100px){ .cards-5{grid-template-columns:repeat(4,1fr)} }
-@media (max-width: 992px) {
-  .hero-inner { grid-template-columns: 1fr; text-align: center; }
-  .hero-text h1 { font-size: 36px; }
-  .hero-actions { justify-content: center; }
-  .hero-art img { max-width: 300px; margin-top: 30px; }
-  
-  /* Tablet: Footer chuyển thành 2 cột */
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 560px){
-  .header-inner{flex-wrap:wrap;height:auto;padding:10px 0}
-  .navline{display:none}
-  .cards-5,.cards-6{grid-template-columns:repeat(2,1fr)}
-  .features{grid-template-columns:1fr}
-  /* Mobile: Footer chuyển thành 1 cột */
-  .footer-grid { grid-template-columns: 1fr; }
+/* Responsive */
+@media (max-width: 768px) {
+    .footer-brand { justify-content: flex-start; }
+    .footer-bottom .container { flex-direction: column; gap: 10px; text-align: center; }
 }
 /* ==========================================================================
    8. GIAO DIỆN ĐĂNG NHẬP / ĐĂNG KÝ (FIXED)
@@ -467,3 +557,108 @@ background: #fff; padding: 6px 12px; border-radius: 4px;
     background: #f0fdfa;
 }
 .bg-light-green { background-color: #f0fdfa; }
+/* ==========================================================================
+   10. RANGE SLIDER (BỘ LỌC GIÁ) - STYLE DỄ NHÌN
+   ========================================================================== */
+.price-input-container {
+    width: 100%;
+    padding: 10px 0;
+}
+
+/* Dòng hiển thị giá tiền (Text to, đậm) */
+.price-display-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--brand); /* Màu xanh thương hiệu */
+    background: #f0fdfa;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccfbf1;
+}
+
+/* Thanh trượt (Track) - Làm to lên cho dễ nhìn */
+.slider-container {
+    height: 8px; /* Dày hơn */
+    position: relative;
+    background: #e2e8f0;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+/* Thanh tiến trình (Màu xanh) */
+.slider-container .progress {
+    height: 100%;
+    left: 0%;
+    right: 0%;
+    position: absolute;
+    border-radius: 5px;
+    background: var(--brand);
+}
+
+/* Input Range (Vùng cảm ứng kéo thả) */
+.range-input {
+    position: relative;
+}
+.range-input input {
+    position: absolute;
+    width: 100%;
+    height: 8px;
+    top: -8px; /* Canh chỉnh để khớp với thanh track */
+    background: none;
+    pointer-events: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+/* Cục tròn điều khiển (Thumb) - To hơn, dễ bấm */
+.range-input input::-webkit-slider-thumb {
+    height: 24px;  /* To hơn */
+    width: 24px;   /* To hơn */
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--brand); /* Viền xanh */
+    pointer-events: auto;
+    -webkit-appearance: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    cursor: grab;
+    margin-top: -8px; /* Căn giữa dọc */
+}
+/* Firefox */
+.range-input input::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--brand);
+    pointer-events: auto;
+    -moz-appearance: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    cursor: grab;
+}
+.range-input input:active::-webkit-slider-thumb {
+    background: var(--brand);
+    cursor: grabbing;
+}
+/* Nút mũi tên Toggle Danh mục */
+.btn-toggle-cat {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    color: #64748b;
+    transition: transform 0.3s ease; /* Hiệu ứng xoay */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-toggle-cat:hover {
+    color: var(--brand);
+    background-color: #f1f5f9;
+    border-radius: 4px;
+}
+
+/* Khi đóng (collapsed), xoay mũi tên sang ngang (-90 độ) */
+.btn-toggle-cat.collapsed {
+    transform: rotate(-90deg);
+}
