@@ -110,16 +110,6 @@
     color: #1a1a1a;
 }
 
-.badge-category {
-    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-    color: white;
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-weight: 600;
-    display: inline-block;
-    box-shadow: 0 3px 10px rgba(15, 191, 191, 0.3);
-}
-
 .product-price {
     font-size: 36px;
     color: #dc3545;
@@ -391,6 +381,76 @@
     margin-bottom: 20px;
 }
 
+.verified-purchase {
+    background: #d4edda;
+    color: #155724;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    border-left: 4px solid #28a745;
+}
+
+/* Box thông báo cần mua sản phẩm */
+.purchase-required-box {
+    background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+    padding: 30px;
+    border-radius: 12px;
+    margin: 25px 0;
+    border: 2px solid #ffc107;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+.purchase-required-content {
+    text-align: center;
+}
+
+.purchase-required-content .icon {
+    font-size: 64px;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-15px); }
+    60% { transform: translateY(-10px); }
+}
+
+.purchase-required-content h4 {
+    color: #856404;
+    margin-bottom: 10px;
+    font-size: 22px;
+}
+
+.purchase-required-content p {
+    color: #856404;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.btn-buy-now {
+    display: inline-block;
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(15, 191, 191, 0.3);
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-buy-now:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 191, 191, 0.4);
+    color: white;
+}
+
 .form-group {
     margin-bottom: 15px;
 }
@@ -584,76 +644,131 @@ textarea.form-control {
     border-radius: 2px;
 }
 
-.related-card {
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
+/* Dùng lại CSS product-card từ trang chủ để đồng bộ */
+.related-section .product-card {
+    border-radius: 8px;
+    position: relative;
     overflow: hidden;
-    transition: all 0.3s;
-    margin-bottom: 20px;
-    background: white;
+    transition: transform .2s, box-shadow .2s;
+    border: 1px solid #e0e0e0;
 }
 
-.related-card:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 8px 25px rgba(15, 191, 191, 0.25);
-    transform: translateY(-8px);
+.related-section .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.1) !important;
 }
 
-.related-image {
-    width: 100%;
-    height: 220px;
-    overflow: hidden;
-    background: var(--primary-light);
+.related-section .card-img-container {
+    aspect-ratio: 2 / 3;
+    background: #f7f7f7;
+    display: block;
+    position: relative;
 }
 
-.related-image img {
+.related-section .card-img-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
+    object-position: center;
 }
 
-.related-card:hover .related-image img {
-    transform: scale(1.1);
-}
-
-.related-info {
-    padding: 18px;
-}
-
-.related-info h5 {
-    font-size: 16px;
-    font-weight: 600;
-    height: 44px;
+.related-section .card-author {
+    white-space: nowrap;
     overflow: hidden;
-    margin-bottom: 12px;
-    color: #333;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: #6c757d;
 }
 
-.related-price {
-    font-size: 20px;
-    color: #dc3545;
-    font-weight: bold;
-    margin-bottom: 12px;
-}
-
-.btn-view {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-    color: white;
-    text-align: center;
-    border-radius: 8px;
-    text-decoration: none;
+.related-section .product-title {
+    font-size: 15px;
     font-weight: 600;
-    transition: all 0.3s;
+    min-height: 42px;
+    line-height: 1.4;
+    margin-bottom: 8px !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.btn-view:hover {
-    background: linear-gradient(180deg, var(--primary-hover) 0%, var(--primary-dark) 100%);
+.related-section .product-title a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.related-section .product-title a:hover {
+    color: var(--primary-color);
+}
+
+.related-section .product-price {
+    font-size: 17px;
+    font-weight: 600;
+    color: #dc3545;
+}
+
+.related-section .card-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    padding: 10px;
+    border-top: 1px solid #eee;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+    z-index: 5;
+}
+
+.related-section .product-card:hover .card-footer {
+    transform: translateY(0);
+}
+
+.related-section .card-footer .btn {
+    white-space: nowrap;
+    padding: 6px 4px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+}
+
+.related-section .btn-wishlist-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    width: 35px;
+    height: 35px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    border: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc3545;
+    font-size: 18px;
+    text-decoration: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+}
+
+.related-section .product-card:hover .btn-wishlist-overlay {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.related-section .btn-wishlist-overlay:hover {
+    background: #dc3545;
     color: white;
-    transform: scale(1.02);
+    border-color: #dc3545;
 }
 
 @media (max-width: 768px) {
@@ -715,10 +830,6 @@ textarea.form-control {
         <h1 class="product-title">
           <?php echo htmlspecialchars($book['title']); ?>
         </h1>
-
-        <div class="mb-3">
-          <span class="badge-category">📚 Danh mục: <?php echo (int)$book['category_id']; ?></span>
-        </div>
 
         <?php if (!empty($book['rating_avg'])): ?>
           <div class="mt-2 mb-3">
@@ -855,36 +966,60 @@ textarea.form-control {
 
     <!-- Form viết bình luận -->
     <?php if (!empty($_SESSION['user'])): ?>
-    <div class="write-review-box">
-      <h4>✍️ Viết đánh giá của bạn</h4>
-      <form action="index.php?controller=product&action=addComment" method="POST" id="reviewForm">
-        <input type="hidden" name="book_id" value="<?php echo (int)$book['id']; ?>">
-        <input type="hidden" name="rating" id="ratingValue" value="" required>
-        
-        <div class="form-group">
-          <label>Đánh giá của bạn: <span id="ratingText" style="color: var(--primary-color); font-weight: bold;"></span></label>
-          <div class="star-rating-input">
-            <span class="star" data-rating="1" onclick="setRating(1)">★</span>
-            <span class="star" data-rating="2" onclick="setRating(2)">★</span>
-            <span class="star" data-rating="3" onclick="setRating(3)">★</span>
-            <span class="star" data-rating="4" onclick="setRating(4)">★</span>
-            <span class="star" data-rating="5" onclick="setRating(5)">★</span>
+      <?php if ($hasPurchased): ?>
+        <!-- User đã mua, cho phép đánh giá -->
+        <div class="write-review-box">
+          <h4>✍️ Viết đánh giá của bạn</h4>
+          <p class="verified-purchase">✅ Bạn đã mua sản phẩm này</p>
+          <form action="index.php?controller=product&action=addComment" method="POST" id="reviewForm">
+            <input type="hidden" name="book_id" value="<?php echo (int)$book['id']; ?>">
+            <input type="hidden" name="rating" id="ratingValue" value="" required>
+            
+            <div class="form-group">
+              <label>Đánh giá của bạn: <span id="ratingText" style="color: var(--primary-color); font-weight: bold;"></span></label>
+              <div class="star-rating-input">
+                <span class="star" data-rating="1" onclick="setRating(1)">★</span>
+                <span class="star" data-rating="2" onclick="setRating(2)">★</span>
+                <span class="star" data-rating="3" onclick="setRating(3)">★</span>
+                <span class="star" data-rating="4" onclick="setRating(4)">★</span>
+                <span class="star" data-rating="5" onclick="setRating(5)">★</span>
+              </div>
+              <p class="rating-hint">👆 Click vào sao để chọn điểm</p>
+            </div>
+            
+            <div class="form-group">
+              <label>Nội dung bình luận:</label>
+              <textarea name="content" class="form-control" rows="4" 
+                        placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..." 
+                        required></textarea>
+            </div>
+            
+            <button type="submit" class="btn-submit-review">
+              📝 Gửi đánh giá
+            </button>
+          </form>
+        </div>
+      <?php else: ?>
+        <!-- User chưa mua -->
+        <div class="purchase-required-box">
+          <div class="purchase-required-content">
+            <div class="icon">🛒</div>
+            <h4>Bạn cần mua sản phẩm để đánh giá</h4>
+            <p>Chỉ khách hàng đã mua và nhận sản phẩm mới có thể viết đánh giá để đảm bảo chất lượng đánh giá.</p>
+            
+            <!-- Form thêm vào giỏ hàng -->
+            <form method="get" action="index.php" style="margin: 0;">
+              <input type="hidden" name="controller" value="cart">
+              <input type="hidden" name="action" value="add">
+              <input type="hidden" name="id" value="<?php echo (int)$book['id']; ?>">
+              <input type="hidden" name="redirect" value="cart">
+              <button type="submit" class="btn-buy-now">
+                🛒 Mua ngay
+              </button>
+            </form>
           </div>
-          <p class="rating-hint">👆 Click vào sao để chọn điểm</p>
         </div>
-        
-        <div class="form-group">
-          <label>Nội dung bình luận:</label>
-          <textarea name="content" class="form-control" rows="4" 
-                    placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..." 
-                    required></textarea>
-        </div>
-        
-        <button type="submit" class="btn-submit-review">
-          📝 Gửi đánh giá
-        </button>
-      </form>
-    </div>
+      <?php endif; ?>
     <?php else: ?>
     <div class="login-prompt">
       <p>Bạn cần <a href="index.php?controller=auth&action=login">đăng nhập</a> để viết đánh giá</p>
@@ -932,30 +1067,61 @@ textarea.form-control {
   <!-- SẢN PHẨM LIÊN QUAN -->
   <?php if (!empty($relatedProducts)): ?>
   <div class="related-section">
-    <h2 class="related-title">📚 Gợi ý cho bạn </h2>
+    <h2 class="related-title">📚 Sản phẩm liên quan</h2>
     <div class="row">
       <?php foreach ($relatedProducts as $product): ?>
-        <div class="col-md-3 col-sm-6">
-          <div class="related-card">
-            <div class="related-image">
-              <?php
-                $imgSrc = !empty($product['image_url']) 
-                    ? $ASSET . '/' . $product['image_url']
-                    : 'https://via.placeholder.com/200x250?text=No+Image';
-              ?>
-              <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
-                   alt="<?php echo htmlspecialchars($product['title']); ?>">
-            </div>
-            <div class="related-info">
-              <h5><?php echo htmlspecialchars($product['title']); ?></h5>
-              <div class="related-price">
-                <?php echo number_format($product['display_price']); ?>₫
-              </div>
-              <a href="index.php?controller=product&action=detail&id=<?php echo (int)$product['id']; ?>" 
-                 class="btn-view">
-                Xem chi tiết
+        <div class="col-md-3 col-sm-6 mb-4">
+          <div class="card h-100 shadow-sm product-card">
+            
+            <div class="card-img-container position-relative">
+              <a href="index.php?controller=account&action=addWishlist&id=<?= (int)$product['id'] ?>" 
+                 class="btn-wishlist-overlay" 
+                 title="Thêm vào yêu thích">
+                 ♥
+              </a>
+              <a href="index.php?controller=product&action=detail&id=<?= (int)$product['id'] ?>" class="d-block w-100 h-100">
+                <?php
+                  $imgSrc = !empty($product['image_url']) 
+                      ? $ASSET . '/' . $product['image_url']
+                      : 'https://via.placeholder.com/200x250?text=No+Image';
+                ?>
+                <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
+                     alt="<?php echo htmlspecialchars($product['title']); ?>">
               </a>
             </div>
+            
+            <div class="card-body d-flex flex-column pb-5">
+              <p class="card-author text-muted small mb-1">Tác giả</p>
+              <h6 class="card-title product-title mb-2">
+                <a href="index.php?controller=product&action=detail&id=<?= (int)$product['id'] ?>">
+                  <?php echo htmlspecialchars($product['title']); ?>
+                </a>
+              </h6>
+              <div class="price-wrap mt-auto">
+                <span class="product-price">
+                  <?php echo number_format($product['display_price']); ?>₫
+                </span>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <div class="d-flex gap-1">
+                <form method="get" action="index.php" class="m-0 flex-grow-1">
+                  <input type="hidden" name="controller" value="cart">
+                  <input type="hidden" name="action" value="add">
+                  <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
+                  <button type="submit" class="btn btn-sm btn-primary w-100" title="Thêm vào giỏ hàng">
+                    + Giỏ
+                  </button>
+                </form>
+
+                <a href="index.php?controller=product&action=detail&id=<?= (int)$product['id'] ?>" 
+                   class="btn btn-sm btn-outline-dark flex-grow-1" title="Xem chi tiết">
+                  Chi tiết
+                </a>
+              </div>
+            </div>
+
           </div>
         </div>
       <?php endforeach; ?>

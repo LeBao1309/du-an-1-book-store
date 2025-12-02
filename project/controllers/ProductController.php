@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../models/BookModel.php';
 require_once __DIR__ . '/../models/CommentModel.php';
+require_once __DIR__ . '/../models/OrderModel.php';
 
 class ProductController extends BaseController
 {
@@ -32,6 +33,12 @@ class ProductController extends BaseController
         // Lấy bình luận và thống kê rating
         $comments = Comment::getByBookId($id);
         $commentStats = Comment::getAverageRating($id);
+        
+        // Kiểm tra user đã mua sản phẩm chưa
+        $hasPurchased = false;
+        if (!empty($_SESSION['user'])) {
+            $hasPurchased = OrderModel::hasUserPurchasedBook($_SESSION['user']['id'], $id);
+        }
 
         return $this->render('page/product_detail', [
             'book'            => $book,
@@ -40,6 +47,7 @@ class ProductController extends BaseController
             'relatedProducts' => $relatedProducts,
             'comments'        => $comments,
             'commentStats'    => $commentStats,
+            'hasPurchased'    => $hasPurchased,
         ]);
     }
 
@@ -65,6 +73,13 @@ class ProductController extends BaseController
         // Kiểm tra dữ liệu
         if ($bookId <= 0 || empty($content) || $rating < 1 || $rating > 5) {
             $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin!';
+            header("Location: index.php?controller=product&action=detail&id={$bookId}");
+            exit;
+        }
+        
+        // Kiểm tra user đã mua sản phẩm này chưa
+        if (!OrderModel::hasUserPurchasedBook($userId, $bookId)) {
+            $_SESSION['error'] = 'Bạn cần mua sản phẩm này trước khi đánh giá!';
             header("Location: index.php?controller=product&action=detail&id={$bookId}");
             exit;
         }

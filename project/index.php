@@ -13,6 +13,8 @@ require_once __DIR__ . '/controllers/BookController.php';
 require_once __DIR__ . '/controllers/ProductController.php';
 require_once __DIR__ . '/controllers/AccountController.php';
 require_once __DIR__ . '/controllers/PaymentController.php';
+require_once __DIR__ . '/controllers/AboutController.php';
+require_once __DIR__ . '/controllers/ContactController.php';
 
 
 
@@ -32,6 +34,8 @@ $controllerMap = [
     'account'  => 'AccountController',
     'wishlist' => 'WishlistController',
     'payment'  => 'PaymentController',
+    'about'    => 'AboutController',
+    'contact'  => 'ContactController',
 ];
 
 if (!array_key_exists($controllerName, $controllerMap)) {

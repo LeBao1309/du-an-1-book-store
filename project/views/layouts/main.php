@@ -59,7 +59,7 @@ foreach ($cart as $item) {
     .search-info h6 { 
         margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #334155;
         line-height: 1.3;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .search-info span { font-size: 13px; color: #dc2626; font-weight: 700; }
     .search-info .author-name { font-size: 12px; color: #64748b; font-weight: 400; margin-left: 6px; }
@@ -121,9 +121,9 @@ foreach ($cart as $item) {
       <ul class="nav">
         <li><a href="index.php?controller=home&action=index">Trang chủ</a></li>
         <li><a href="index.php?controller=category&action=index">Danh mục</a></li>
+        <li><a href="index.php?controller=about&action=index">Giới thiệu</a></li>
         <li><a href="#">Blog</a></li>
-        <li><a href="#">Giới thiệu</a></li>
-        <li><a href="#">Liên hệ</a></li>
+        <li><a href="index.php?controller=contact&action=index">Liên hệ</a></li>
       </ul>
     </div>
   </header>

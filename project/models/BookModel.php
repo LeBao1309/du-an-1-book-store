@@ -169,8 +169,9 @@ class Book extends BaseModel {
         $stmt->execute([$bookId]);
         return $stmt->fetchAll();
     }
-    public static function getRelatedProducts($bookId, $categoryId, $limit=4) {
-         $sql = "SELECT b.id, b.title, b.slug,
+    
+    public static function getRelatedProducts($bookId, $categoryId, $limit = 4) {
+        $sql = "SELECT b.id, b.title, b.slug,
                        MIN(IFNULL(v.sale_price, v.price)) as display_price, 
                        MIN(i.image_url) as image_url
                 FROM books b
@@ -178,7 +179,9 @@ class Book extends BaseModel {
                 LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
                 WHERE b.category_id = ? AND b.id != ? AND b.is_active = 1
                 GROUP BY b.id, b.title, b.slug
+                ORDER BY RAND()
                 LIMIT ?";
+        
         $stmt = self::db()->prepare($sql);
         $stmt->bindValue(1, $categoryId, \PDO::PARAM_INT);
         $stmt->bindValue(2, $bookId, \PDO::PARAM_INT);
