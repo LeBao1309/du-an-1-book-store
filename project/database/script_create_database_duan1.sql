@@ -1,6 +1,7 @@
 -- ===============================================================
--- TẠO DATABASE
+-- 0. THIẾT LẬP MÔI TRƯỜNG & DATABASE
 -- ===============================================================
+DROP DATABASE IF EXISTS du_an_1_book_store;
 CREATE DATABASE du_an_1_book_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE du_an_1_book_store;
 
@@ -15,28 +16,29 @@ CREATE TABLE authors (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 2. BẢNG CATEGORIES (DANH MỤC)
--- ===============================================================
-CREATE TABLE categories (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            name VARCHAR(255) NOT NULL,
-                            slug VARCHAR(255) NOT NULL UNIQUE,
-                            parent_id INT DEFAULT NULL,
-                            INDEX idx_slug (slug),
-                            INDEX idx_parent (parent_id),
-                            CONSTRAINT fk_category_parent
-                                FOREIGN KEY (parent_id) REFERENCES categories(id)
-                                    ON DELETE SET NULL
-) ENGINE=InnoDB;
-
--- ===============================================================
--- 3. BẢNG PUBLISHER (NHÀ XUẤT BẢN)
+-- 2. BẢNG PUBLISHER (NHÀ XUẤT BẢN)
 -- ===============================================================
 CREATE TABLE publisher (
                            id INT AUTO_INCREMENT PRIMARY KEY,
                            name VARCHAR(255) NOT NULL,
                            slug VARCHAR(255) NOT NULL UNIQUE,
                            INDEX idx_slug (slug)
+) ENGINE=InnoDB;
+
+-- ===============================================================
+-- 3. BẢNG CATEGORIES (DANH MỤC)
+-- ===============================================================
+CREATE TABLE categories (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            slug VARCHAR(255) NOT NULL UNIQUE,
+                            parent_id INT DEFAULT NULL,
+                            is_active TINYINT(1) NOT NULL DEFAULT 1, -- Đã gộp từ ALTER
+                            INDEX idx_slug (slug),
+                            INDEX idx_parent (parent_id),
+                            CONSTRAINT fk_category_parent
+                                FOREIGN KEY (parent_id) REFERENCES categories(id)
+                                    ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ===============================================================
@@ -69,7 +71,30 @@ CREATE TABLE user_address (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 6. BẢNG BOOKS (SÁCH)
+-- 6. BẢNG COUPONS (MÃ GIẢM GIÁ)
+-- (Tạo trước bảng orders để orders có thể tham chiếu tới)
+-- ===============================================================
+CREATE TABLE coupons (
+                         id INT AUTO_INCREMENT PRIMARY KEY,
+                         code VARCHAR(50) NOT NULL UNIQUE,
+                         type ENUM('percent', 'fixed') NOT NULL DEFAULT 'percent',
+                         value DECIMAL(10,2) NOT NULL,
+                         max_discount DECIMAL(10,2) DEFAULT NULL,
+                         min_order_total DECIMAL(10,2) DEFAULT 0,
+                         usage_limit INT DEFAULT NULL,
+                         max_uses_per_user INT DEFAULT NULL, -- Đã gộp từ ALTER
+                         used_count INT DEFAULT 0,
+                         starts_at DATETIME NULL,
+                         ends_at DATETIME NULL,
+                         is_active TINYINT(1) DEFAULT 1,
+                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                         INDEX idx_active (is_active),
+                         INDEX idx_time (starts_at, ends_at)
+) ENGINE=InnoDB;
+
+-- ===============================================================
+-- 7. BẢNG BOOKS (SÁCH)
 -- ===============================================================
 CREATE TABLE books (
                        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -91,7 +116,20 @@ CREATE TABLE books (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 7. BẢNG BOOK_AUTHORS (SÁCH - TÁC GIẢ, N-N)
+-- 8. BẢNG BOOK_IMAGES (ẢNH SÁCH)
+-- ===============================================================
+CREATE TABLE book_images (
+                             id INT AUTO_INCREMENT PRIMARY KEY,
+                             book_id INT NOT NULL,
+                             image_url VARCHAR(255) NOT NULL,
+                             sort_order INT DEFAULT 0 COMMENT '0 là thumbnail, 1 2 3... là ảnh chi tiết',
+                             CONSTRAINT fk_book_images_book
+                                 FOREIGN KEY (book_id) REFERENCES books(id)
+                                     ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ===============================================================
+-- 9. BẢNG BOOK_AUTHORS (SÁCH - TÁC GIẢ, N-N)
 -- ===============================================================
 CREATE TABLE book_authors (
                               id INT AUTO_INCREMENT PRIMARY KEY,
@@ -107,7 +145,7 @@ CREATE TABLE book_authors (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 8. BẢNG BOOK_PUBLISHER (SÁCH - NXB, 1-N)
+-- 10. BẢNG BOOK_PUBLISHER (SÁCH - NXB, 1-N)
 -- ===============================================================
 CREATE TABLE book_publisher (
                                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -124,7 +162,7 @@ CREATE TABLE book_publisher (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 9. BẢNG BOOK_VARIANTS (PHIÊN BẢN SÁCH)
+-- 11. BẢNG BOOK_VARIANTS (PHIÊN BẢN SÁCH)
 -- ===============================================================
 CREATE TABLE book_variants (
                                id INT AUTO_INCREMENT PRIMARY KEY,
@@ -139,7 +177,7 @@ CREATE TABLE book_variants (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 10. BẢNG COMMENTS (BÌNH LUẬN)
+-- 12. BẢNG COMMENTS (BÌNH LUẬN)
 -- ===============================================================
 CREATE TABLE comments (
                           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -160,7 +198,7 @@ CREATE TABLE comments (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 11. BẢNG WISHLIST (DANH SÁCH YÊU THÍCH)
+-- 13. BẢNG WISHLIST (DANH SÁCH YÊU THÍCH)
 -- ===============================================================
 CREATE TABLE wishlist (
                           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -176,36 +214,59 @@ CREATE TABLE wishlist (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 12. BẢNG ORDERS (ĐƠN HÀNG)
+-- 14. BẢNG ORDERS (ĐƠN HÀNG)
 -- ===============================================================
 CREATE TABLE orders (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         user_address_id INT NULL COMMENT 'ID địa chỉ trong sổ địa chỉ',
-                        total DECIMAL(10,2) NOT NULL,
 
-    -- Dữ liệu snapshot (ảnh chụp nhanh)
-                        shipping_status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    -- Các trường tiền tệ & Coupon
+                        total DECIMAL(10,2) NOT NULL,
+                        coupon_id INT NULL,
+                        discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    -- Cột tính toán tự động (Generated Column) cho MySQL 5.7+
+                        final_total DECIMAL(10,2) GENERATED ALWAYS AS (total - discount_amount) STORED,
+
+    -- Trạng thái
+                        shipping_status ENUM('pending', 'processing', 'shipped', 'cancelled') DEFAULT 'pending',
+                        payment_status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
+
+    -- Thông tin ship
                         shipping_address TEXT NOT NULL,
                         shipping_phone VARCHAR(20),
-
                         note TEXT,
+
+    -- Hủy đơn
+                        cancel_reason TEXT NULL,
+                        cancelled_by_user_id INT NULL,
+
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
+    -- Indexes
                         INDEX idx_user (user_id),
                         INDEX idx_status (shipping_status),
+                        INDEX idx_payment_status (payment_status),
+                        INDEX idx_cancelled_by (cancelled_by_user_id),
 
+    -- Foreign Keys
                         CONSTRAINT fk_order_user
                             FOREIGN KEY (user_id) REFERENCES users(id)
                                 ON DELETE RESTRICT,
                         CONSTRAINT fk_order_user_address
                             FOREIGN KEY (user_address_id) REFERENCES user_address(id)
+                                ON DELETE SET NULL,
+                        CONSTRAINT fk_orders_coupon
+                            FOREIGN KEY (coupon_id) REFERENCES coupons(id)
+                                ON DELETE SET NULL,
+                        CONSTRAINT fk_orders_cancelled_by_user
+                            FOREIGN KEY (cancelled_by_user_id) REFERENCES users(id)
                                 ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 13. BẢNG ORDER_ITEMS (CHI TIẾT ĐƠN HÀNG)
+-- 15. BẢNG ORDER_ITEMS (CHI TIẾT ĐƠN HÀNG)
 -- ===============================================================
 CREATE TABLE order_items (
                              id INT AUTO_INCREMENT PRIMARY KEY,
@@ -225,27 +286,21 @@ CREATE TABLE order_items (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 14. BẢNG PAYMENT (THANH TOÁN)
+-- 16. BẢNG PAYMENT (THANH TOÁN)
 -- ===============================================================
-DROP TABLE IF EXISTS payment;
-
 CREATE TABLE payment (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  order_id INT NOT NULL,
-  payment_method ENUM('cod', 'card', 'wallet') NOT NULL,
-  UNIQUE KEY uk_order (order_id),
-  CONSTRAINT fk_payment_order
-    FOREIGN KEY (order_id) REFERENCES orders(id)
-      ON DELETE CASCADE
-) ENGINE=InnoDB;
+                         id INT AUTO_INCREMENT PRIMARY KEY,
+                         order_id INT NOT NULL,
+                         payment_method ENUM('cod', 'card', 'wallet') NOT NULL,
+                         amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+                         status ENUM('pending','success','failed','refunded') NOT NULL DEFAULT 'pending',
+                         provider VARCHAR(50) DEFAULT NULL COMMENT 'Ví dụ: VNPay, Momo, Stripe',
+                         transaction_code VARCHAR(100) DEFAULT NULL,
+                         raw_response TEXT NULL,
+                         paid_at DATETIME NULL,
 
-CREATE TABLE book_images (
-                             id INT AUTO_INCREMENT PRIMARY KEY,
-                             book_id INT NOT NULL,
-                             image_url VARCHAR(255) NOT NULL,
-                             sort_order INT DEFAULT 0 comment '0 là thumbnail, 1 2 3,...là ảnh trong sản phẩm chi tiết',
-                             CONSTRAINT fk_book_images_book
-                                 FOREIGN KEY (book_id) REFERENCES books(id)
-                                     ON DELETE CASCADE
+                         UNIQUE KEY uk_order (order_id),
+                         CONSTRAINT fk_payment_order
+                             FOREIGN KEY (order_id) REFERENCES orders(id)
+                                 ON DELETE CASCADE
 ) ENGINE=InnoDB;
-

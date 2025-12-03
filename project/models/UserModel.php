@@ -126,4 +126,114 @@ final class UserModel extends BaseModel
         $st = self::db()->prepare($sql);
         return (bool) $st->execute([':id' => $id, ':userId' => $userId]);
     }
+
+
+    public static function adminCreate(
+        string $name,
+        string $email,
+        string $password,
+        string $role = 'user',
+        bool $isActive = true
+    ): int {
+        if (!in_array($role, ['user','admin'], true)) {
+            $role = 'user';
+        }
+
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $sql = "INSERT INTO users (name, email, password, role, is_active)
+                VALUES (:name, :email, :password, :role, :is_active)";
+        $st = self::db()->prepare($sql);
+        $st->execute([
+            ':name'      => $name,
+            ':email'     => $email,
+            ':password'  => $hash,
+            ':role'      => $role,
+            ':is_active' => $isActive ? 1 : 0,
+        ]);
+
+        return (int) self::db()->lastInsertId();
+    }
+
+    public static function adminUpdate(
+        int $id,
+        string $name,
+        string $email,
+        string $role,
+        bool $isActive,
+        ?string $newPassword = null
+    ): bool {
+        if (!in_array($role, ['user','admin'], true)) {
+            $role = 'user';
+        }
+
+        $params = [
+            ':id'        => $id,
+            ':name'      => $name,
+            ':email'     => $email,
+            ':role'      => $role,
+            ':is_active' => $isActive ? 1 : 0,
+        ];
+
+        $set = "name = :name, email = :email, role = :role, is_active = :is_active";
+
+        if ($newPassword !== null && $newPassword !== '') {
+            $params[':password'] = password_hash($newPassword, PASSWORD_DEFAULT);
+            $set .= ", password = :password";
+        }
+
+        $sql = "UPDATE users SET {$set} WHERE id = :id";
+        $st = self::db()->prepare($sql);
+        return $st->execute($params);
+    }
+
+    public static function paginateForAdmin(array $filters, int $page, int $perPage = 10): array
+    {
+        $where  = [];
+        $params = [];
+
+        if ($filters['keyword'] !== '') {
+            $where[] = '(name LIKE :kw OR email LIKE :kw)';
+            $params[':kw'] = '%' . $filters['keyword'] . '%';
+        }
+        if ($filters['role'] !== '') {
+            $where[] = 'role = :role';
+            $params[':role'] = $filters['role'];
+        }
+        if ($filters['status'] !== '') {
+            $where[] = 'is_active = :status';
+            $params[':status'] = (int)$filters['status'];
+        }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $sqlCount = "SELECT COUNT(*) FROM users {$whereSql}";
+        $st = self::db()->prepare($sqlCount);
+        $st->execute($params);
+        $total = (int)$st->fetchColumn();
+
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT id, name, email, role, is_active, created_at
+                FROM users
+                {$whereSql}
+                ORDER BY created_at DESC
+                LIMIT :limit OFFSET :offset";
+
+        $st = self::db()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v);
+        }
+        $st->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $st->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $st->execute();
+
+        return [
+            'items'    => $st->fetchAll(),
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'lastPage' => max(1, (int)ceil($total / $perPage)),
+        ];
+    }
+
 }
