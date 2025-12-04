@@ -174,7 +174,13 @@ final class AccountController extends BaseController
     public function wishlist(): string
     {
         $u = $this->requireLogin();
-        $books = class_exists('Wishlist') ? Wishlist::getWishlist((int)$u['id']) : [];
+
+        // Nạp Model Wishlist
+        require_once __DIR__ . '/../models/WishlistModel.php';
+
+        // Lấy danh sách
+        $books = WishlistModel::getWishlist((int)$u['id']);
+
         $csrf = $this->csrfToken();
         $active = 'wishlist'; 
         return $this->render('account/wishlist', compact('books', 'csrf', 'active'));
@@ -184,8 +190,10 @@ final class AccountController extends BaseController
     {
         $u = $this->requireLogin();
         $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        if ($bookId > 0 && class_exists('Wishlist')) {
-            Wishlist::remove((int)$u['id'], $bookId);
+
+        if ($bookId > 0) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            WishlistModel::remove((int)$u['id'], $bookId);
             $this->flash('success', 'Đã xóa sản phẩm khỏi danh sách yêu thích');
         }
         $this->redirect('?controller=account&action=wishlist');
@@ -196,8 +204,14 @@ final class AccountController extends BaseController
     {
         $u = $this->requireLogin();
         $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        if ($bookId > 0 && class_exists('Wishlist')) {
-            Wishlist::add((int)$u['id'], $bookId);
+
+        if ($bookId > 0) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            
+            // 2. Gọi Model để thêm
+            WishlistModel::add((int)$u['id'], $bookId);
+            
+            // 3. Thông báo
             $this->flash('success', 'Đã thêm sách vào danh sách yêu thích ❤️');
         }
         $backUrl = $_SERVER['HTTP_REFERER'] ?? '?controller=home';
@@ -233,4 +247,6 @@ final class AccountController extends BaseController
         // Truyền biến sang view
         return $this->render('account/order_detail', compact('order', 'items', 'active'));
     }
+    
+    // --- KẾT THÚC PHẦN LỊCH SỬ ĐƠN HÀNG ---
 }

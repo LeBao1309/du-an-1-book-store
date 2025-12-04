@@ -15,24 +15,24 @@ class ProductController extends BaseController
         }
 
         // Lấy thông tin sách
-        $book = Book::findById($id);
+        $book = BookModel::findById($id);
         if (!$book) {
             http_response_code(404);
             return $this->render('page/404');
         }
 
         // Lấy danh sách biến thể (format, giá, stock...)
-        $variants = Book::getVariants($id);
+        $variants = BookModel::getVariants($id);
 
         // Lấy danh sách ảnh
-        $images = Book::getImages($id);
+        $images = BookModel::getImages($id);
 
         // Lấy sản phẩm liên quan (cùng danh mục)
-        $relatedProducts = Book::getRelatedProducts($id, $book['category_id'], 4);
+        $relatedProducts = BookModel::getRelatedProducts($id, $book['category_id'], 4);
 
         // Lấy bình luận và thống kê rating
-        $comments = Comment::getByBookId($id);
-        $commentStats = Comment::getAverageRating($id);
+        $comments = CommentModel::getByBookId($id);
+        $commentStats = CommentModel::getAverageRating($id);
         
         // Kiểm tra user đã mua sản phẩm chưa
         $hasPurchased = false;
@@ -85,7 +85,7 @@ class ProductController extends BaseController
         }
 
         // Thêm bình luận vào database
-        $result = Comment::create($bookId, $userId, $content, $rating);
+        $result = CommentModel::create($bookId, $userId, $content, $rating);
 
         // Thông báo và quay lại trang chi tiết
         if ($result) {

@@ -16,17 +16,17 @@ class BookController extends BaseController
         }
 
         // Lấy thông tin sách
-        $book = Book::findById($id);
+        $book = BookModel::findById($id);
         if (!$book) {
             http_response_code(404);
             return $this->render('page/404');
         }
 
         // Lấy các biến thể (bìa mềm/bìa cứng/ebook...)
-        $variants = Book::getVariants($id);
+        $variants = BookModel::getVariants($id);
 
         // Lấy các ảnh của sách
-        $images = Book::getImages($id);
+        $images = BookModel::getImages($id);
 
         // Tính giá hiển thị (min(sale_price, price))
         $displayPrice = null;

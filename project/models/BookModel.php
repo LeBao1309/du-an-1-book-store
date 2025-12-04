@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/BaseModel.php';
 
-class Book extends BaseModel {
-
+/**
+ * Book Model - Quản lý thông tin sách
+ */
+final class BookModel extends BaseModel
+{
     // 1. Lấy sách mới cho trang chủ
     public static function getNewestProducts($limit = 8) {
         $sql = "SELECT b.id, b.title, b.slug,
@@ -60,7 +63,7 @@ class Book extends BaseModel {
             $bindings[] = '%' . $params['keyword'] . '%';
         }
 
-        $sql .= " GROUP BY b.id, b.title, b.slug, p.name ";
+        $sql .= " GROUP BY b.id, b.title, b.slug, b.category_id, p.name ";
 
         // Lọc Giá (Dùng HAVING vì display_price là alias được tính toán)
         $havingClause = [];
@@ -83,7 +86,9 @@ class Book extends BaseModel {
         elseif ($sort === 'price-desc') $sql .= " ORDER BY display_price DESC ";
         else $sql .= " ORDER BY b.id DESC ";
 
-        $sql .= " LIMIT $limit OFFSET $offset";
+        $sql .= " LIMIT ? OFFSET ?";
+        $bindings[] = $limit;
+        $bindings[] = $offset;
 
         $stmt = self::db()->prepare($sql);
         $stmt->execute($bindings);
@@ -186,6 +191,70 @@ class Book extends BaseModel {
         $stmt->bindValue(1, $categoryId, \PDO::PARAM_INT);
         $stmt->bindValue(2, $bookId, \PDO::PARAM_INT);
         $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // 5. Lấy sách bán chạy (dựa trên số lượng đã bán)
+    public static function getBestSellers($limit = 8) {
+        $sql = "SELECT b.id, b.title, b.slug,
+                       MIN(IFNULL(v.sale_price, v.price)) as display_price, 
+                       MIN(i.image_url) as image_url,
+                       GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
+                       p.name as publisher_name,
+                       SUM(oi.quantity) as total_sold
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                LEFT JOIN book_authors ba ON b.id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.id
+                LEFT JOIN book_publisher bp ON b.id = bp.book_id
+                LEFT JOIN publisher p ON bp.publisher_id = p.id
+                LEFT JOIN order_items oi ON v.id = oi.variant_id
+                LEFT JOIN orders o ON oi.order_id = o.id
+                
+                WHERE b.is_active = 1
+                  AND b.id != 2
+                  AND o.shipping_status = 'delivered'
+                  AND i.image_url IS NOT NULL
+                GROUP BY b.id, b.title, b.slug, p.name
+                ORDER BY total_sold DESC
+                LIMIT ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // 6. Lấy sách giảm giá nhiều nhất
+    public static function getDiscountedBooks($limit = 8) {
+        $sql = "SELECT b.id, b.title, b.slug,
+                       MIN(v.price) as original_price,
+                       MIN(v.sale_price) as sale_price,
+                       MIN(i.image_url) as image_url,
+                       GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
+                       p.name as publisher_name,
+                       ROUND((1 - MIN(v.sale_price) / MIN(v.price)) * 100) as discount_percent
+                FROM books b
+                LEFT JOIN book_variants v ON v.book_id = b.id
+                LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                LEFT JOIN book_authors ba ON b.id = ba.book_id
+                LEFT JOIN authors a ON ba.author_id = a.id
+                LEFT JOIN book_publisher bp ON b.id = bp.book_id
+                LEFT JOIN publisher p ON bp.publisher_id = p.id
+                
+                WHERE b.is_active = 1
+                  AND v.sale_price IS NOT NULL
+                  AND v.sale_price < v.price
+                  AND i.image_url IS NOT NULL
+                GROUP BY b.id, b.title, b.slug, p.name
+                HAVING discount_percent >= 10
+                ORDER BY discount_percent DESC
+                LIMIT ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }

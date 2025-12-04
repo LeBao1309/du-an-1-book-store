@@ -1,7 +1,11 @@
 <?php
+
 require_once __DIR__ . '/BaseModel.php';
 
-class OrderModel extends BaseModel
+/**
+ * Order Model - Quản lý đơn hàng
+ */
+final class OrderModel extends BaseModel
 {
     /**
      * Lấy danh sách toàn bộ đơn hàng của User
