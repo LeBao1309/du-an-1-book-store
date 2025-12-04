@@ -210,7 +210,7 @@ final class AccountController extends BaseController
         require_once __DIR__ . '/../models/WishlistModel.php';
 
         // Lấy danh sách
-        $books = Wishlist::getWishlist((int)$u['id']);
+        $books = WishlistModel::getWishlist((int)$u['id']);
 
         $csrf = $this->csrfToken();
         $active = 'wishlist'; // Để highlight menu bên trái
@@ -229,7 +229,7 @@ final class AccountController extends BaseController
 
         if ($bookId > 0) {
             require_once __DIR__ . '/../models/WishlistModel.php';
-            Wishlist::remove((int)$u['id'], $bookId);
+            WishlistModel::remove((int)$u['id'], $bookId);
             $this->flash('success', 'Đã xóa sản phẩm khỏi danh sách yêu thích');
         }
 
@@ -247,7 +247,7 @@ final class AccountController extends BaseController
             require_once __DIR__ . '/../models/WishlistModel.php';
             
             // 2. Gọi Model để thêm
-            Wishlist::add((int)$u['id'], $bookId);
+            WishlistModel::add((int)$u['id'], $bookId);
             
             // 3. Thông báo
             $this->flash('success', 'Đã thêm sách vào danh sách yêu thích ❤️');

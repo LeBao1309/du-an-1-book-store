@@ -137,7 +137,7 @@ foreach ($cart as $item) {
       <?php 
         // Lấy cây danh mục cho sidebar
         require_once __DIR__ . '/../../models/CategoryModel.php';
-        $categoryTree = Category::getTree();
+        $categoryTree = CategoryModel::getTree();
       ?>
       <?php foreach ($categoryTree as $parent): ?>
         <li>
@@ -331,5 +331,8 @@ foreach ($cart as $item) {
         }
     });
   </script>
+  
+  <!-- Category Slider Navigation -->
+  <script src="<?= $ASSET ?>/js/category-slider.js"></script>
 </body>
 </html>

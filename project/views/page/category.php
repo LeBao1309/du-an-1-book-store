@@ -1,7 +1,7 @@
 <?php
 // 1. Lấy cây danh mục
 require_once __DIR__ . '/../../models/CategoryModel.php';
-$catTree = Category::getTree();
+$catTree = CategoryModel::getTree();
 
 // 2. Tham số
 $currentParams = $currentParams ?? [
