@@ -61,24 +61,34 @@
                             <tbody>
                                 <?php foreach ($items as $item): ?>
                                     <?php 
-                                        // Xử lý ảnh
-                                        $rawImg = $item['image_url'] ?? '';
-                                        $imgSrc = (!empty($rawImg)) 
-                                            ? $ASSET . '/' . ltrim($rawImg, '/') 
-                                            : 'https://dummyimage.com/60x80/eee/aaa';
+                                        // 1. Lấy đường dẫn ảnh từ Database
+                                        $dbPath = $item['image_url'] ?? '';
+
+                                        // 2. CẤU HÌNH ĐƯỜNG DẪN GỐC (Đã thêm public/)
+                                        $baseUrl = '/duan1/du-an-1-book-store/project/public/';
+
+                                        // 3. Nối đường dẫn
+                                        if (!empty($dbPath)) {
+                                            $imgSrc = $baseUrl . $dbPath;
+                                        } else {
+                                            $imgSrc = 'https://dummyimage.com/80x120/eee/999?text=No+Img';
+                                        }
                                     ?>
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <img src="<?= htmlspecialchars($imgSrc) ?>" 
-                                                     alt="Book"
-                                                     style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px; margin-right: 12px;">
+                                                     alt="Book Img"
+                                                     onerror="this.src='https://dummyimage.com/80x120/eee/999?text=Error';"
+                                                     style="width: 80px; height: 120px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; margin-right: 15px;">
+                                                
                                                 <div>
                                                     <div class="fw-bold text-dark"><?= htmlspecialchars($item['title']) ?></div>
                                                     <small class="text-muted">Phân loại: <?= htmlspecialchars($item['format'] ?? 'Tiêu chuẩn') ?></small>
                                                 </div>
                                             </div>
                                         </td>
+                                        
                                         <td class="text-center"><?= $item['quantity'] ?></td>
                                         <td class="text-end text-muted"><?= number_format($item['price']) ?>₫</td>
                                         <td class="text-end fw-bold"><?= number_format($item['subtotal']) ?>₫</td>
