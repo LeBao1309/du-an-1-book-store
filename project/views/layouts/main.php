@@ -35,7 +35,69 @@ if ($currentCatId === 0) {
   <link rel="stylesheet" href="<?= $ASSET; ?>/css/styles.css" />
 
   <style>
+<<<<<<< Updated upstream
     .wd-toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+=======
+    /* 1. Định nghĩa biến màu chủ đạo */
+    :root {
+        --brand: #0ea5a5;       /* Màu gốc */
+        --brand-hover: #42ba96; /* Màu khi di chuột (Nhạt hơn/Sáng hơn) */
+        --brand-light: #f0fdfa; /* Màu nền nhạt */
+    }
+
+    /* 2. Ép nút Primary thành màu Xanh Ngọc */
+    .btn-primary {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+    }
+
+    /* 3. Chỉnh màu khi Hover (Di chuột vào) -> Nhạt hơn */
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-primary:active {
+        background-color: var(--brand-hover) !important;
+        border-color: var(--brand-hover) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(14, 165, 165, 0.4) !important;
+    }
+
+    /* 4. Nút viền (Outline) */
+    .btn-outline-primary {
+        border-color: var(--brand) !important;
+    }
+    .btn-outline-primary:hover {
+        background-color: var(--brand) !important;
+        color: #fff !important;
+    }
+
+    /* 5. Chữ màu chính (Text Primary) */
+    .text-primary {
+        color: var(--brand) !important;
+    }
+
+    /* 6. Đường dẫn (Link) */
+    a {
+        color: #333;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+    a:hover {
+        color: var(--brand) !important;
+    }
+
+    /* 7. Phân trang (Pagination) */
+    .page-item.active .page-link {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+    }
+    .page-link {
+        color: var(--brand) !important;
+    }
+
+    /* 1. TOAST MESSAGE */
+    .wd-toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.12); z-index: 9999;}
+>>>>>>> Stashed changes
     .wd-toast.error{background:#dc2626}
   </style>
 </head>
