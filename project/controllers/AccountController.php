@@ -174,13 +174,8 @@ final class AccountController extends BaseController
     public function wishlist(): string
     {
         $u = $this->requireLogin();
-
-        // Nạp Model Wishlist
         require_once __DIR__ . '/../models/WishlistModel.php';
-
-        // Lấy danh sách
         $books = WishlistModel::getWishlist((int)$u['id']);
-
         $csrf = $this->csrfToken();
         $active = 'wishlist'; 
         return $this->render('account/wishlist', compact('books', 'csrf', 'active'));
@@ -207,11 +202,7 @@ final class AccountController extends BaseController
 
         if ($bookId > 0) {
             require_once __DIR__ . '/../models/WishlistModel.php';
-            
-            // 2. Gọi Model để thêm
             WishlistModel::add((int)$u['id'], $bookId);
-            
-            // 3. Thông báo
             $this->flash('success', 'Đã thêm sách vào danh sách yêu thích ❤️');
         }
         $backUrl = $_SERVER['HTTP_REFERER'] ?? '?controller=home';
@@ -232,7 +223,6 @@ final class AccountController extends BaseController
         $u = $this->requireLogin();
         $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-        // 1. Lấy thông tin đơn
         $order = OrderModel::getOrderById($orderId, (int)$u['id']);
         if (!$order) {
             $this->flash('error', 'Không tìm thấy đơn hàng này.');
@@ -240,13 +230,38 @@ final class AccountController extends BaseController
             return '';
         }
 
-        // 2. Lấy danh sách món hàng
         $items = OrderModel::getOrderItems($orderId);
         $active = 'orders';
 
-        // Truyền biến sang view
         return $this->render('account/order_detail', compact('order', 'items', 'active'));
     }
     
-    // --- KẾT THÚC PHẦN LỊCH SỬ ĐƠN HÀNG ---
+    public function cancelOrder(): void
+    {
+        $u = $this->requireLogin();
+        $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        // Lý do mặc định
+        $reason = "Khách hàng chủ động hủy"; 
+
+        if (OrderModel::cancelOrder($orderId, (int)$u['id'], $reason)) {
+            $this->flash('success', 'Đã hủy đơn hàng thành công.');
+        } else {
+            $this->flash('error', 'Không thể hủy đơn hàng này (Đơn đã được xử lý hoặc không tồn tại).');
+        }
+        $this->redirect('?controller=account&action=orders');
+    }
+
+    public function confirmReceived(): void
+    {
+        $u = $this->requireLogin();
+        $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if (OrderModel::confirmReceived($orderId, (int)$u['id'])) {
+            $this->flash('success', 'Cảm ơn bạn! Đã xác nhận giao hàng thành công.');
+        } else {
+            $this->flash('error', 'Không thể xác nhận (Đơn chưa được giao hoặc lỗi hệ thống).');
+        }
+        $this->redirect('?controller=account&action=orders');
+    }
 }

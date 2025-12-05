@@ -53,9 +53,25 @@
                                             </td>
                                             <td class="text-end">
                                                 <a href="index.php?controller=account&action=orderDetail&id=<?= $o['id'] ?>" 
-                                                   class="btn btn-sm btn-outline-dark">
+                                                   class="btn btn-sm btn-outline-dark mb-1" title="Xem chi tiết">
                                                     Chi tiết
                                                 </a>
+                                                
+                                                <?php if ($o['shipping_status'] === 'pending'): ?>
+                                                    <a href="index.php?controller=account&action=cancelOrder&id=<?= $o['id'] ?>" 
+                                                       class="btn btn-sm btn-outline-danger mb-1"
+                                                       onclick="return confirm('Bạn có chắc chắn muốn hủy đơn hàng #<?= $o['id'] ?> này không?');">
+                                                        Hủy đơn
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <?php if ($o['shipping_status'] === 'shipped'): ?>
+                                                    <a href="index.php?controller=account&action=confirmReceived&id=<?= $o['id'] ?>" 
+                                                       class="btn btn-sm btn-success text-white mb-1"
+                                                       onclick="return confirm('Xác nhận bạn đã nhận được hàng và kiện hàng nguyên vẹn?');">
+                                                        Đã nhận hàng
+                                                    </a>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
