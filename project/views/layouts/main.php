@@ -126,10 +126,384 @@ foreach ($cart as $item) {
     .social-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white !important; text-decoration: none; font-weight: bold; transition: transform 0.2s; }
     .social-icon:hover { transform: translateY(-3px); }
     .pay-icon { background: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; color: #333; font-weight: bold; }
+    
+    /* 4. POPUP BANNER */
+    .popup-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .popup-banner.show {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .popup-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+    }
+    
+    .popup-content {
+        position: relative;
+        max-width: 700px;
+        width: 90%;
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        animation: popupSlideUp 0.4s ease;
+    }
+    
+    .popup-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.3s;
+        color: #333;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .popup-close:hover {
+        background: #ef4444;
+        color: #fff;
+        transform: rotate(90deg) scale(1.1);
+    }
+    
+    .popup-inner {
+        position: relative;
+    }
+    
+    .popup-image {
+        width: 100%;
+        height: 350px;
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    
+    .popup-image::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255,255,255,0.05) 10px,
+            rgba(255,255,255,0.05) 20px
+        );
+        animation: backgroundMove 20s linear infinite;
+    }
+    
+    @keyframes backgroundMove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(50px, 50px); }
+    }
+    
+    .popup-image-overlay {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+    }
+    
+    .floating-books {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+    }
+    
+    .book-icon {
+        position: absolute;
+        font-size: 60px;
+        opacity: 0.3;
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    .book-icon:nth-child(1) {
+        top: 20%;
+        left: 15%;
+        animation-delay: 0s;
+    }
+    
+    .book-icon:nth-child(2) {
+        top: 50%;
+        right: 20%;
+        animation-delay: 1s;
+    }
+    
+    .book-icon:nth-child(3) {
+        bottom: 25%;
+        left: 25%;
+        animation-delay: 2s;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    
+    .promo-sticker {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .promo-sticker::before {
+        content: '';
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        border: 3px dashed #fff;
+        animation: rotate 10s linear infinite;
+    }
+    
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    .promo-text {
+        font-size: 48px;
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: 2px;
+    }
+    
+    .popup-text {
+        padding: 30px;
+        text-align: center;
+        background: linear-gradient(180deg, #fff 0%, #f8f9fa 100%);
+    }
+    
+    .popup-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #fff;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    
+    .popup-text h2 {
+        font-size: 32px;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0 0 10px 0;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+    }
+    
+    .popup-text h3 {
+        font-size: 24px;
+        color: #334155;
+        margin: 0 0 15px 0;
+        font-weight: 600;
+    }
+    
+    .popup-text .highlight {
+        color: #ef4444;
+        font-weight: 800;
+        font-size: 28px;
+    }
+    
+    .popup-description {
+        color: #64748b;
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 25px;
+    }
+    
+    .popup-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .btn-popup-primary {
+        background: linear-gradient(135deg, var(--brand) 0%, var(--brand-hover) 100%);
+        color: #fff;
+        padding: 14px 32px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 15px;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(14, 165, 165, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-popup-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(14, 165, 165, 0.4);
+    }
+    
+    .btn-popup-secondary {
+        background: #fff;
+        color: var(--brand);
+        padding: 14px 32px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 15px;
+        border: 2px solid var(--brand);
+        transition: all 0.3s;
+    }
+    
+    .btn-popup-secondary:hover {
+        background: var(--brand);
+        color: #fff;
+    }
+    
+    .popup-note {
+        font-size: 12px;
+        color: #94a3b8;
+        margin: 0;
+        font-style: italic;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes popupSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .popup-content {
+            width: 95%;
+            max-width: none;
+        }
+        
+        .popup-image {
+            height: 250px;
+        }
+        
+        .popup-text h2 {
+            font-size: 24px;
+        }
+        
+        .popup-text h3 {
+            font-size: 18px;
+        }
+        
+        .popup-actions {
+            flex-direction: column;
+        }
+        
+        .btn-popup-primary,
+        .btn-popup-secondary {
+            width: 100%;
+        }
+    }
   </style>
 </head>
 
 <body>
+  <!-- Popup Banner Quảng Cáo -->
+  <div id="popupBanner" class="popup-banner">
+    <div class="popup-overlay"></div>
+    <div class="popup-content">
+      <button id="closePopup" class="popup-close" aria-label="Đóng">×</button>
+      <div class="popup-inner">
+        <!-- Banner Image - CSS Background -->
+        <div class="popup-image">
+          <div class="popup-image-overlay">
+            <div class="floating-books">
+              <div class="book-icon">📚</div>
+              <div class="book-icon">📖</div>
+              <div class="book-icon">📕</div>
+            </div>
+            <div class="promo-sticker">
+              <span class="promo-text">12.12</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Banner Content -->
+        <div class="popup-text">
+          <div class="popup-badge">GIẢM GIÁ SỐC</div>
+          <h2>🎉 SALE 12.12</h2>
+          <h3>Mua sách giảm đến <span class="highlight">50%</span></h3>
+          <p class="popup-description">Áp dụng cho tất cả sách trong hệ thống.<br>Miễn phí ship đơn từ 150K</p>
+          
+          <div class="popup-actions">
+            <a href="index.php?controller=category&action=index" class="btn-popup-primary">
+              MUA NGAY
+            </a>
+            <a href="index.php?controller=category&action=index" class="btn-popup-secondary">
+              Xem Sản Phẩm
+            </a>
+          </div>
+          
+          <p class="popup-note">* Áp dụng cho đơn hàng từ 100.000đ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <?php if (!empty($flash) && !empty($flash['message'])): ?>
     <div class="wd-toast <?= $flash['type']==='error' ? 'error' : '' ?>">
       <?= htmlspecialchars($flash['message']) ?>
@@ -392,5 +766,8 @@ foreach ($cart as $item) {
   
   <!-- Category Slider Navigation -->
   <script src="<?= $ASSET ?>/js/category-slider.js"></script>
+  
+  <!-- Popup Banner -->
+  <script src="<?= $ASSET ?>/js/popup-banner.js"></script>
 </body>
 </html>
