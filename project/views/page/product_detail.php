@@ -784,6 +784,287 @@ textarea.form-control {
         flex-direction: column;
     }
 }
+
+/* ==================== PHẦN Q&A ==================== */
+.qa-section {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(15, 191, 191, 0.15);
+    margin-bottom: 30px;
+    border: 1px solid rgba(15, 191, 191, 0.2);
+}
+
+.qa-title {
+    font-size: 28px;
+    color: var(--primary-color);
+    font-weight: 700;
+    margin-bottom: 10px;
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+.qa-description {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.ask-question-box {
+    background: var(--primary-light);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 1px solid var(--primary-color);
+}
+
+.ask-question-box h4 {
+    color: var(--primary-dark);
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.btn-submit-question {
+    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-submit-question:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 191, 191, 0.3);
+}
+
+.questions-list {
+    margin-top: 30px;
+}
+
+.questions-list h4 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.question-item {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.question-content {
+    margin-bottom: 15px;
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.question-header strong {
+    color: #333;
+    font-size: 15px;
+}
+
+.question-date {
+    color: #999;
+    font-size: 13px;
+}
+
+.question-text {
+    color: #333;
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.q-icon {
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+.answers-list {
+    margin-left: 30px;
+    margin-top: 15px;
+    border-left: 3px solid var(--primary-light);
+    padding-left: 20px;
+}
+
+.answer-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.answer-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.shop-answer {
+    background: linear-gradient(135deg, #fff8e1 0%, #fffaef 100%);
+    border: 2px solid #ffd54f;
+}
+
+.answer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.answer-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.shop-badge {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.answer-date {
+    color: #999;
+    font-size: 13px;
+}
+
+.answer-text {
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 8px;
+    background: rgba(15, 191, 191, 0.05);
+    border-radius: 6px;
+    border-left: 4px solid #4caf50;
+}
+
+.a-icon {
+    color: #4caf50;
+    font-weight: bold;
+    font-size: 16px;
+    margin-right: 8px;
+}
+
+.answer-votes {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.vote-btn {
+    background: white;
+    border: 2px solid #e0e0e0;
+    padding: 6px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vote-btn:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.vote-btn.upvote.active {
+    background: linear-gradient(135deg, #4caf50, #66bb6a);
+    color: white;
+    border-color: #4caf50;
+}
+
+.vote-btn.downvote.active {
+    background: linear-gradient(135deg, #f44336, #e57373);
+    color: white;
+    border-color: #f44336;
+}
+
+.vote-count {
+    font-weight: 600;
+}
+
+.vote-count-readonly {
+    font-size: 14px;
+    color: #666;
+    margin-right: 15px;
+}
+
+.reply-form-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.btn-show-reply {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: 2px solid var(--primary-color);
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-show-reply:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.reply-form {
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--primary-light);
+    border-radius: 8px;
+}
+
+.btn-submit-answer {
+    background: linear-gradient(180deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.btn-submit-answer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.no-questions {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
 </style>
 
 <div class="container py-4">
@@ -1064,6 +1345,129 @@ textarea.form-control {
     </div>
   </div>
 
+  <!-- PHẦN HỎI ĐÁP SẢN PHẨM -->
+  <div class="qa-section">
+    <h2 class="qa-title">❓ Hỏi đáp sản phẩm</h2>
+    <p class="qa-description">Bạn có thắc mắc về sản phẩm? Đặt câu hỏi ngay để được giải đáp!</p>
+
+    <!-- Form đặt câu hỏi -->
+    <?php if (!empty($_SESSION['user'])): ?>
+    <div class="ask-question-box">
+      <h4>📝 Đặt câu hỏi của bạn</h4>
+      <form id="askQuestionForm">
+        <input type="hidden" name="book_id" value="<?php echo (int)$book['id']; ?>">
+        <div class="form-group">
+          <textarea name="question" id="questionInput" class="form-control" rows="3" 
+                    placeholder="Nhập câu hỏi của bạn về sản phẩm..." 
+                    required></textarea>
+        </div>
+        <button type="submit" class="btn-submit-question">
+          💬 Gửi câu hỏi
+        </button>
+      </form>
+    </div>
+    <?php else: ?>
+    <div class="login-prompt">
+      <p>Bạn cần <a href="index.php?controller=auth&action=login">đăng nhập</a> để đặt câu hỏi</p>
+    </div>
+    <?php endif; ?>
+
+    <!-- Danh sách câu hỏi -->
+    <div class="questions-list">
+      <h4>💬 Các câu hỏi từ khách hàng (<?php echo $totalQuestions; ?>)</h4>
+      
+      <?php if (!empty($questions) && count($questions) > 0): ?>
+        <?php foreach ($questions as $question): ?>
+        <div class="question-item">
+          <!-- Câu hỏi -->
+          <div class="question-content">
+            <div class="question-header">
+              <strong>👤 <?php echo htmlspecialchars($question['user_name']); ?></strong>
+              <span class="question-date">
+                <?php echo date('d/m/Y H:i', strtotime($question['created_at'])); ?>
+              </span>
+            </div>
+            <div class="question-text">
+              <span class="q-icon">Q:</span>
+              <?php echo nl2br(htmlspecialchars($question['question'])); ?>
+            </div>
+          </div>
+
+          <!-- Danh sách câu trả lời -->
+          <?php if (!empty($question['answers'])): ?>
+          <div class="answers-list">
+            <?php foreach ($question['answers'] as $answer): ?>
+            <div class="answer-item <?php echo $answer['is_shop_answer'] ? 'shop-answer' : ''; ?>">
+              <div class="answer-header">
+                <div class="answer-user">
+                  <strong>👤 <?php echo htmlspecialchars($answer['user_name']); ?></strong>
+                  <?php if ($answer['is_shop_answer']): ?>
+                    <span class="shop-badge">🏪 Người bán</span>
+                  <?php endif; ?>
+                </div>
+                <span class="answer-date">
+                  <?php echo date('d/m/Y H:i', strtotime($answer['created_at'])); ?>
+                </span>
+              </div>
+              <div class="answer-text">
+                <span class="a-icon">A:</span>
+                <?php echo nl2br(htmlspecialchars($answer['answer'])); ?>
+              </div>
+              
+              <!-- Voting buttons -->
+              <?php if (!empty($_SESSION['user'])): ?>
+              <div class="answer-votes">
+                <button class="vote-btn upvote <?php echo isset($answer['user_vote']) && $answer['user_vote'] === 'upvote' ? 'active' : ''; ?>" 
+                        data-answer-id="<?php echo $answer['id']; ?>" 
+                        data-vote-type="upvote">
+                  👍 <span class="vote-count"><?php echo $answer['upvotes']; ?></span>
+                </button>
+                <button class="vote-btn downvote <?php echo isset($answer['user_vote']) && $answer['user_vote'] === 'downvote' ? 'active' : ''; ?>" 
+                        data-answer-id="<?php echo $answer['id']; ?>" 
+                        data-vote-type="downvote">
+                  👎 <span class="vote-count"><?php echo $answer['downvotes']; ?></span>
+                </button>
+              </div>
+              <?php else: ?>
+              <div class="answer-votes">
+                <span class="vote-count-readonly">👍 <?php echo $answer['upvotes']; ?></span>
+                <span class="vote-count-readonly">👎 <?php echo $answer['downvotes']; ?></span>
+              </div>
+              <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+
+          <!-- Form trả lời (chỉ hiện khi đã đăng nhập) -->
+          <?php if (!empty($_SESSION['user'])): ?>
+          <div class="reply-form-container">
+            <button class="btn-show-reply" onclick="toggleReplyForm(<?php echo $question['id']; ?>)">
+              💬 Trả lời câu hỏi
+            </button>
+            <form class="reply-form" id="replyForm<?php echo $question['id']; ?>" style="display: none;">
+              <input type="hidden" name="question_id" value="<?php echo $question['id']; ?>">
+              <div class="form-group">
+                <textarea name="answer" class="form-control" rows="2" 
+                          placeholder="Nhập câu trả lời của bạn..." 
+                          required></textarea>
+              </div>
+              <button type="submit" class="btn-submit-answer">
+                📤 Gửi trả lời
+              </button>
+            </form>
+          </div>
+          <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="no-questions">
+          <p>Chưa có câu hỏi nào cho sản phẩm này. Hãy là người đầu tiên đặt câu hỏi!</p>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <!-- SẢN PHẨM LIÊN QUAN -->
   <?php if (!empty($relatedProducts)): ?>
   <div class="related-section">
@@ -1270,6 +1674,114 @@ window.addEventListener('DOMContentLoaded', function() {
         document.getElementById('currentStock').textContent = maxStock;
         updateQuantityButtons();
     }
+});
+
+// ==================== Q&A FUNCTIONALITY ====================
+
+// Toggle reply form
+function toggleReplyForm(questionId) {
+    const form = document.getElementById('replyForm' + questionId);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+// Handle ask question form
+document.getElementById('askQuestionForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('index.php?controller=product&action=askQuestion', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload(); // Reload để hiển thị câu hỏi mới
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Có lỗi xảy ra!');
+    });
+});
+
+// Handle answer forms
+document.querySelectorAll('.reply-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('index.php?controller=product&action=answerQuestion', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload(); // Reload để hiển thị câu trả lời mới
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Có lỗi xảy ra!');
+        });
+    });
+});
+
+// Handle vote buttons
+document.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const answerId = this.dataset.answerId;
+        const voteType = this.dataset.voteType;
+        
+        const formData = new FormData();
+        formData.append('answer_id', answerId);
+        formData.append('vote_type', voteType);
+        
+        fetch('index.php?controller=product&action=voteAnswer', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cập nhật UI
+                const upvoteBtn = document.querySelector(`.vote-btn.upvote[data-answer-id="${answerId}"]`);
+                const downvoteBtn = document.querySelector(`.vote-btn.downvote[data-answer-id="${answerId}"]`);
+                
+                // Reset active state
+                upvoteBtn.classList.remove('active');
+                downvoteBtn.classList.remove('active');
+                
+                // Update counts
+                upvoteBtn.querySelector('.vote-count').textContent = data.upvotes;
+                downvoteBtn.querySelector('.vote-count').textContent = data.downvotes;
+                
+                // Set active state if vote was added or changed
+                if (data.action === 'added' || data.action === 'changed') {
+                    if (data.vote_type === 'upvote') {
+                        upvoteBtn.classList.add('active');
+                    } else {
+                        downvoteBtn.classList.add('active');
+                    }
+                }
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Có lỗi xảy ra!');
+        });
+    });
 });
 
 </script>

@@ -1,0 +1,190 @@
+<?php
+require_once 'BaseModel.php';
+
+class QuestionModel extends BaseModel
+{
+    /**
+     * Lấy danh sách câu hỏi của sản phẩm
+     */
+    public static function getQuestionsByBookId($bookId, $limit = 10, $offset = 0)
+    {
+        $sql = "SELECT 
+                    q.*,
+                    u.name as user_name,
+                    u.email as user_email,
+                    (SELECT COUNT(*) FROM question_answers WHERE question_id = q.id) as answer_count
+                FROM product_questions q
+                LEFT JOIN users u ON q.user_id = u.id
+                WHERE q.book_id = ?
+                ORDER BY q.created_at DESC
+                LIMIT ? OFFSET ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$bookId, $limit, $offset]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Đếm tổng số câu hỏi của sản phẩm
+     */
+    public static function countQuestionsByBookId($bookId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM product_questions WHERE book_id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$bookId]);
+        $result = $stmt->fetch();
+        return $result['total'] ?? 0;
+    }
+
+    /**
+     * Lấy chi tiết câu hỏi
+     */
+    public static function getQuestionById($id)
+    {
+        $sql = "SELECT 
+                    q.*,
+                    u.name as user_name,
+                    u.email as user_email
+                FROM product_questions q
+                LEFT JOIN users u ON q.user_id = u.id
+                WHERE q.id = ?";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Tạo câu hỏi mới
+     */
+    public static function createQuestion($bookId, $userId, $question)
+    {
+        $sql = "INSERT INTO product_questions (book_id, user_id, question) VALUES (?, ?, ?)";
+        $stmt = self::db()->prepare($sql);
+        return $stmt->execute([$bookId, $userId, $question]);
+    }
+
+    /**
+     * Lấy câu trả lời của một câu hỏi
+     */
+    public static function getAnswersByQuestionId($questionId)
+    {
+        $sql = "SELECT 
+                    a.*,
+                    u.name as user_name,
+                    u.email as user_email,
+                    u.role as user_role
+                FROM question_answers a
+                LEFT JOIN users u ON a.user_id = u.id
+                WHERE a.question_id = ?
+                ORDER BY a.is_shop_answer DESC, a.upvotes DESC, a.created_at ASC";
+        
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$questionId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Tạo câu trả lời
+     */
+    public static function createAnswer($questionId, $userId, $answer, $isShopAnswer = false)
+    {
+        $sql = "INSERT INTO question_answers (question_id, user_id, answer, is_shop_answer) 
+                VALUES (?, ?, ?, ?)";
+        $stmt = self::db()->prepare($sql);
+        $result = $stmt->execute([$questionId, $userId, $answer, $isShopAnswer ? 1 : 0]);
+        
+        // Cập nhật trạng thái đã trả lời
+        if ($result) {
+            $updateSql = "UPDATE product_questions SET is_answered = 1 WHERE id = ?";
+            $updateStmt = self::db()->prepare($updateSql);
+            $updateStmt->execute([$questionId]);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Kiểm tra user đã vote cho câu trả lời chưa
+     */
+    public static function getUserVote($answerId, $userId)
+    {
+        $sql = "SELECT vote_type FROM answer_votes WHERE answer_id = ? AND user_id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$answerId, $userId]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Vote cho câu trả lời
+     */
+    public static function voteAnswer($answerId, $userId, $voteType)
+    {
+        // Kiểm tra đã vote chưa
+        $existingVote = self::getUserVote($answerId, $userId);
+        
+        if ($existingVote) {
+            // Nếu vote giống nhau thì xóa vote (unlike)
+            if ($existingVote['vote_type'] === $voteType) {
+                $sql = "DELETE FROM answer_votes WHERE answer_id = ? AND user_id = ?";
+                $stmt = self::db()->prepare($sql);
+                $result = $stmt->execute([$answerId, $userId]);
+                
+                // Giảm vote count
+                if ($result) {
+                    $column = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
+                    $updateSql = "UPDATE question_answers SET {$column} = {$column} - 1 WHERE id = ?";
+                    $updateStmt = self::db()->prepare($updateSql);
+                    $updateStmt->execute([$answerId]);
+                }
+                
+                return ['action' => 'removed', 'vote_type' => $voteType];
+            } else {
+                // Nếu vote khác thì đổi vote
+                $sql = "UPDATE answer_votes SET vote_type = ? WHERE answer_id = ? AND user_id = ?";
+                $stmt = self::db()->prepare($sql);
+                $result = $stmt->execute([$voteType, $answerId, $userId]);
+                
+                // Cập nhật vote count
+                if ($result) {
+                    $oldColumn = $existingVote['vote_type'] === 'upvote' ? 'upvotes' : 'downvotes';
+                    $newColumn = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
+                    
+                    $updateSql = "UPDATE question_answers 
+                                 SET {$oldColumn} = {$oldColumn} - 1, {$newColumn} = {$newColumn} + 1 
+                                 WHERE id = ?";
+                    $updateStmt = self::db()->prepare($updateSql);
+                    $updateStmt->execute([$answerId]);
+                }
+                
+                return ['action' => 'changed', 'vote_type' => $voteType];
+            }
+        } else {
+            // Tạo vote mới
+            $sql = "INSERT INTO answer_votes (answer_id, user_id, vote_type) VALUES (?, ?, ?)";
+            $stmt = self::db()->prepare($sql);
+            $result = $stmt->execute([$answerId, $userId, $voteType]);
+            
+            // Tăng vote count
+            if ($result) {
+                $column = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
+                $updateSql = "UPDATE question_answers SET {$column} = {$column} + 1 WHERE id = ?";
+                $updateStmt = self::db()->prepare($updateSql);
+                $updateStmt->execute([$answerId]);
+            }
+            
+            return ['action' => 'added', 'vote_type' => $voteType];
+        }
+    }
+
+    /**
+     * Lấy vote counts của câu trả lời
+     */
+    public static function getAnswerVoteCounts($answerId)
+    {
+        $sql = "SELECT upvotes, downvotes FROM question_answers WHERE id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$answerId]);
+        return $stmt->fetch();
+    }
+}
