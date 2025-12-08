@@ -59,7 +59,6 @@ final class OrderModel extends BaseModel
 
     /**
      * Tạo đơn hàng từ giỏ hàng
-     * - GHI ĐÚNG VÀO BẢNG orders & order_items THEO SCHEMA HIỆN TẠI
      */
     public static function createFromCart(
         int $userId,
@@ -76,7 +75,7 @@ final class OrderModel extends BaseModel
         $pdo->beginTransaction();
 
         try {
-            // 1. TÍNH TỔNG TIỀN (theo schema: cột 'total')
+            // 1. TÍNH TỔNG TIỀN
             $totalAmount = 0;
 
             foreach ($cart as $item) {
@@ -87,20 +86,16 @@ final class OrderModel extends BaseModel
                 }
             }
 
-            // 2. LẤY THÔNG TIN ĐỊA CHỈ (NẾU CÓ)
-            // user_address_id: id trong bảng user_address
+            // 2. LẤY THÔNG TIN ĐỊA CHỈ
             $userAddressId   = $shipping['id'] ?? null;
             $shippingPhone   = $shipping['shipping_phone'] ?? null;
             $shippingAddress = $shipping['full_address']   ?? null;
 
             if (empty($shippingAddress)) {
-                // tuỳ anh: có thể throw hoặc để NULL và DB báo lỗi NOT NULL
                 throw new \RuntimeException('Thiếu địa chỉ giao hàng (shipping_address).');
             }
 
             // 3. INSERT VÀO BẢNG orders
-            // LƯU Ý: cột trong DB là: user_id, user_address_id, total,
-            //        shipping_status, shipping_address, shipping_phone, note
             $sqlOrder = "
                 INSERT INTO orders (
                     user_id,
@@ -138,7 +133,6 @@ final class OrderModel extends BaseModel
             $orderId = (int)$pdo->lastInsertId();
 
             // 4. INSERT CÁC DÒNG order_items
-            // CỘT TRONG DB: order_id, variant_id, quantity, price, subtotal
             $sqlItem = "
                 INSERT INTO order_items (
                     order_id,
@@ -197,7 +191,6 @@ final class OrderModel extends BaseModel
     
     /**
      * Kiểm tra user đã mua sản phẩm (book_id) chưa
-     * Chỉ tính đơn hàng đã giao (delivered)
      */
     public static function hasUserPurchasedBook(int $userId, int $bookId): bool
     {
@@ -217,5 +210,53 @@ final class OrderModel extends BaseModel
         
         $result = $stmt->fetch();
         return $result && $result['count'] > 0;
+    }
+
+    /**
+     * Hủy đơn hàng (Chỉ áp dụng khi đơn đang chờ xử lý - pending)
+     * Đã sửa lỗi trùng tên tham số :uid
+     */
+    public static function cancelOrder(int $orderId, int $userId, string $reason = ''): bool
+    {
+        $sql = "UPDATE orders 
+                SET shipping_status = 'cancelled', 
+                    cancelled_by_user_id = :uid_update, 
+                    cancel_reason = :reason,
+                    updated_at = NOW()
+                WHERE id = :id 
+                  AND user_id = :uid_check 
+                  AND shipping_status = 'pending'";
+        
+        $stmt = self::db()->prepare($sql);
+        return $stmt->execute([
+            ':id'         => $orderId, 
+            ':uid_update' => $userId,
+            ':uid_check'  => $userId,
+            ':reason'     => $reason
+        ]);
+    }
+
+    /**
+     * Xác nhận đã nhận hàng (Chuyển từ shipped -> delivered)
+     * Đồng thời cập nhật payment_status thành 'paid' nếu đang là COD (pending)
+     */
+    public static function confirmReceived(int $orderId, int $userId): bool
+    {
+        $sql = "UPDATE orders 
+                SET shipping_status = 'delivered',
+                    payment_status = CASE 
+                        WHEN payment_status = 'pending' THEN 'paid' 
+                        ELSE payment_status 
+                    END,
+                    updated_at = NOW()
+                WHERE id = :id 
+                  AND user_id = :uid 
+                  AND shipping_status = 'shipped'";
+        
+        $stmt = self::db()->prepare($sql);
+        return $stmt->execute([
+            ':id'  => $orderId, 
+            ':uid' => $userId
+        ]);
     }
 }

@@ -7,15 +7,14 @@ final class WishlistModel extends BaseModel
 {
     /**
      * Thêm sách vào danh sách yêu thích
-     * @param int $userId ID của người dùng
-     * @param int $bookId ID của cuốn sách
-     * @return bool True nếu thành công hoặc sách đã có
+     * Sửa: Bỏ created_at vì bảng wishlist trong DB không có cột này
      */
     public static function add(int $userId, int $bookId): bool
     {
         try {
-            $sql = "INSERT IGNORE INTO wishlist (user_id, book_id, created_at) 
-                    VALUES (:userId, :bookId, NOW())";
+            // Chỉ insert user_id và book_id
+            $sql = "INSERT IGNORE INTO wishlist (user_id, book_id) 
+                    VALUES (:userId, :bookId)";
             
             $stmt = self::db()->prepare($sql);
             return $stmt->execute([':userId' => $userId, ':bookId' => $bookId]);
@@ -27,9 +26,6 @@ final class WishlistModel extends BaseModel
 
     /**
      * Xóa sách khỏi danh sách yêu thích
-     * @param int $userId ID của người dùng
-     * @param int $bookId ID của cuốn sách
-     * @return bool True nếu xóa thành công
      */
     public static function remove(int $userId, int $bookId): bool
     {
@@ -47,48 +43,44 @@ final class WishlistModel extends BaseModel
 
     /**
      * Lấy danh sách Yêu thích của người dùng
-     * @param int $userId ID của người dùng
-     * @return array Danh sách sách
+     * Sửa: Bỏ sắp xếp theo created_at
      */
     public static function getWishlist(int $userId): array
     {
         try {
-            // Lấy ảnh đầu tiên của sách (sort_order thấp nhất)
+            // Join bảng để lấy thông tin sách, tác giả, giá, ảnh
+            // Không dùng created_at nữa
             $sql = "SELECT 
                         b.id, 
                         b.title, 
                         b.slug,
-                        b.author_name,
+                        GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
                         MIN(IFNULL(v.sale_price, v.price)) as display_price,
-                        (
-                            SELECT image_url 
-                            FROM book_images 
-                            WHERE book_id = b.id 
-                            ORDER BY sort_order ASC 
-                            LIMIT 1
-                        ) as image_url,
-                        uw.created_at
+                        MIN(i.image_url) as image_url
                     FROM wishlist uw
                     JOIN books b ON uw.book_id = b.id
                     LEFT JOIN book_variants v ON v.book_id = b.id
+                    LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
+                    -- Join bảng tác giả
+                    LEFT JOIN book_authors ba ON b.id = ba.book_id
+                    LEFT JOIN authors a ON ba.author_id = a.id
+                    
                     WHERE uw.user_id = :userId
-                    GROUP BY b.id, b.title, b.slug, b.author_name, uw.created_at
-                    ORDER BY uw.created_at DESC";
+                    GROUP BY b.id, b.title, b.slug
+                    ORDER BY b.id DESC"; // Sắp xếp theo ID sách giảm dần (mới thêm sẽ có ID cao nếu logic DB khác, hoặc đơn giản là theo thứ tự sách)
             
             $stmt = self::db()->prepare($sql);
             $stmt->execute([':userId' => $userId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
+            // Ghi lỗi cụ thể ra file log hoặc màn hình để debug nếu cần
             error_log("Error getting wishlist: " . $e->getMessage());
             return [];
         }
     }
     
     /**
-     * Kiểm tra xem một cuốn sách có nằm trong wishlist của user hay không
-     * @param int $userId ID của người dùng
-     * @param int $bookId ID của cuốn sách
-     * @return bool True nếu sách có trong wishlist
+     * Kiểm tra xem một cuốn sách có nằm trong wishlist hay không
      */
     public static function check(int $userId, int $bookId): bool
     {
@@ -106,11 +98,6 @@ final class WishlistModel extends BaseModel
         }
     }
 
-    /**
-     * Đếm số lượng sách trong wishlist của người dùng
-     * @param int $userId ID của người dùng
-     * @return int Số lượng sách
-     */
     public static function count(int $userId): int
     {
         try {
@@ -124,11 +111,6 @@ final class WishlistModel extends BaseModel
         }
     }
 
-    /**
-     * Xóa toàn bộ wishlist của người dùng
-     * @param int $userId ID của người dùng
-     * @return bool True nếu thành công
-     */
     public static function clearAll(int $userId): bool
     {
         try {

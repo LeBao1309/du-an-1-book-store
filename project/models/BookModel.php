@@ -202,7 +202,7 @@ final class BookModel extends BaseModel
                        MIN(i.image_url) as image_url,
                        GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as author_names,
                        p.name as publisher_name,
-                       SUM(oi.quantity) as total_sold
+                       COALESCE(SUM(oi.quantity), 0) as total_sold
                 FROM books b
                 LEFT JOIN book_variants v ON v.book_id = b.id
                 LEFT JOIN book_images i ON i.book_id = b.id AND i.sort_order = 0
@@ -211,13 +211,12 @@ final class BookModel extends BaseModel
                 LEFT JOIN book_publisher bp ON b.id = bp.book_id
                 LEFT JOIN publisher p ON bp.publisher_id = p.id
                 LEFT JOIN order_items oi ON v.id = oi.variant_id
-                LEFT JOIN orders o ON oi.order_id = o.id
+                LEFT JOIN orders o ON oi.order_id = o.id AND o.shipping_status = 'delivered'
                 
                 WHERE b.is_active = 1
-                  AND b.id != 2
-                  AND o.shipping_status = 'delivered'
                   AND i.image_url IS NOT NULL
                 GROUP BY b.id, b.title, b.slug, p.name
+                HAVING total_sold > 0
                 ORDER BY total_sold DESC
                 LIMIT ?";
         
