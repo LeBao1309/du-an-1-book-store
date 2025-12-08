@@ -121,14 +121,101 @@
             </tfoot>
 
           </table>
+          <!-- MODAL CHỌN / THÊM ĐỊA CHỈ GIAO HÀNG (THUẦN CSS) -->
+          <div id="addressModal" class="css-modal-overlay">
+            <div class="css-modal-box">
 
-           <!-- ⭐ Nút cập nhật địa chỉ căn TRÁI -->
+              <?php if (!empty($addresses)): ?>
+                <!-- ✅ TRƯỜNG HỢP CÓ ĐỊA CHỈ -->
+                <form action="index.php?controller=payment&action=selectShipping" method="POST">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+
+                  <div class="css-modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Chọn địa chỉ giao hàng</h5>
+                    <!-- Nút đóng modal: quay về "#" -->
+                    <a href="#" class="css-modal-close" aria-label="Đóng">&times;</a>
+                  </div>
+
+                  <div class="css-modal-body">
+                    <?php foreach ($addresses as $addr): ?>
+                      <div class="form-check mb-2 p-2 border rounded">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="shipping_id"
+                          id="addr_<?= (int)$addr['id'] ?>"
+                          value="<?= (int)$addr['id'] ?>"
+                          <?= isset($shipping['id']) && $shipping['id'] == $addr['id'] ? 'checked' : '' ?>
+                        >
+                        <label class="form-check-label" for="addr_<?= (int)$addr['id'] ?>">
+                          <div><strong><?= htmlspecialchars($addr['receiver_name'] ?? $fullName) ?></strong></div>
+                          <div>Điện thoại: <?= htmlspecialchars($addr['shipping_phone'] ?? '') ?></div>
+                          <div>Địa chỉ: <?= htmlspecialchars($addr['full_address'] ?? '') ?></div>
+                          <?php if (!empty($addr['is_default'])): ?>
+                            <span class="badge bg-success mt-1">Mặc định</span>
+                          <?php endif; ?>
+                        </label>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+
+                  <div class="css-modal-footer d-flex justify-content-between">
+                    <!-- NÚT THÊM ĐỊA CHỈ: LUÔN HIỆN -->
+                    <a
+                      href="index.php?controller=account&action=address"
+                      class="btn btn-sm btn-address-trigger"
+                    >
+                      + Thêm địa chỉ
+                    </a>
+
+                    <div>
+                      <a href="#" class="btn btn-secondary btn-sm">Đóng</a>
+                      <button type="submit" class="btn btn-success btn-sm">
+                        Chọn địa chỉ này
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+              <?php else: ?>
+                <!-- ❌ TRƯỜNG HỢP KHÔNG CÓ ĐỊA CHỈ -->
+                <div class="css-modal-header d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">Địa chỉ giao hàng</h5>
+                  <a href="#" class="css-modal-close" aria-label="Đóng">&times;</a>
+                </div>
+
+                <div class="css-modal-body">
+                  <div class="alert alert-info mb-0">
+                    Bạn chưa có địa chỉ giao hàng nào.
+                  </div>
+                </div>
+
+                <div class="css-modal-footer d-flex justify-content-between">
+                  <a
+                    href="index.php?controller=account&action=address"
+                    class="btn btn-sm btn-address-trigger"
+                  >
+                    + Thêm địa chỉ
+                  </a>
+                  <a href="#" class="btn btn-secondary btn-sm">Đóng</a>
+                </div>
+
+
+              <?php endif; ?>
+
+            </div>
+          </div>
+        <!-- ⭐ Nút mở MODAL chọn / thêm địa chỉ (căn trái) -->
           <div class="text-start mt-3">
-            <a href="index.php?controller=account&action=address" 
-              class="btn btn-outline-primary btn-sm">
-              Cập nhật địa chỉ
+            <a
+              href="#addressModal"
+              class="btn btn-sm btn-address-trigger"
+            >
+              Chọn / thêm địa chỉ giao hàng
             </a>
           </div>
+
+
         </div>
 
         <div class="mt-3 text-end">
