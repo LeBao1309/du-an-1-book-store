@@ -314,52 +314,53 @@ CREATE TABLE wishlist (
 -- 14. BẢNG ORDERS (ĐƠN HÀNG)
 -- ===============================================================
 CREATE TABLE orders (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
-                        user_address_id INT NULL COMMENT 'ID địa chỉ trong sổ địa chỉ',
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    user_address_id INT NULL COMMENT 'ID địa chỉ trong sổ địa chỉ',
 
     -- Các trường tiền tệ & Coupon
-                        total DECIMAL(10,2) NOT NULL,
-                        coupon_id INT NULL,
-                        discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    coupon_id INT NULL,
+    discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    
     -- Cột tính toán tự động (Generated Column) cho MySQL 5.7+
-                        final_total DECIMAL(10,2) GENERATED ALWAYS AS (total - discount_amount) STORED,
+    final_total DECIMAL(10,2) GENERATED ALWAYS AS (total - discount_amount) STORED,
 
-    -- Trạng thái
-                        shipping_status ENUM('pending', 'processing', 'shipped', 'cancelled') DEFAULT 'pending',
-                        payment_status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
+    -- Trạng thái (ĐÃ SỬA: Thêm 'delivered')
+    shipping_status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    payment_status ENUM('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
 
     -- Thông tin ship
-                        shipping_address TEXT NOT NULL,
-                        shipping_phone VARCHAR(20),
-                        note TEXT,
+    shipping_address TEXT NOT NULL,
+    shipping_phone VARCHAR(20),
+    note TEXT,
 
     -- Hủy đơn
-                        cancel_reason TEXT NULL,
-                        cancelled_by_user_id INT NULL,
+    cancel_reason TEXT NULL,
+    cancelled_by_user_id INT NULL,
 
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     -- Indexes
-                        INDEX idx_user (user_id),
-                        INDEX idx_status (shipping_status),
-                        INDEX idx_payment_status (payment_status),
-                        INDEX idx_cancelled_by (cancelled_by_user_id),
+    INDEX idx_user (user_id),
+    INDEX idx_status (shipping_status),
+    INDEX idx_payment_status (payment_status),
+    INDEX idx_cancelled_by (cancelled_by_user_id),
 
     -- Foreign Keys
-                        CONSTRAINT fk_order_user
-                            FOREIGN KEY (user_id) REFERENCES users(id)
-                                ON DELETE RESTRICT,
-                        CONSTRAINT fk_order_user_address
-                            FOREIGN KEY (user_address_id) REFERENCES user_address(id)
-                                ON DELETE SET NULL,
-                        CONSTRAINT fk_orders_coupon
-                            FOREIGN KEY (coupon_id) REFERENCES coupons(id)
-                                ON DELETE SET NULL,
-                        CONSTRAINT fk_orders_cancelled_by_user
-                            FOREIGN KEY (cancelled_by_user_id) REFERENCES users(id)
-                                ON DELETE SET NULL
+    CONSTRAINT fk_order_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+            ON DELETE RESTRICT,
+    CONSTRAINT fk_order_user_address
+        FOREIGN KEY (user_address_id) REFERENCES user_address(id)
+            ON DELETE SET NULL,
+    CONSTRAINT fk_orders_coupon
+        FOREIGN KEY (coupon_id) REFERENCES coupons(id)
+            ON DELETE SET NULL,
+    CONSTRAINT fk_orders_cancelled_by_user
+        FOREIGN KEY (cancelled_by_user_id) REFERENCES users(id)
+            ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ===============================================================

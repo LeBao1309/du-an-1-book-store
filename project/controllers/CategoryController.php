@@ -33,17 +33,17 @@ class CategoryController extends BaseController
         ];
 
         // 3. Gọi Model
-        $books      = Book::filter($filterParams, $limit, $offset);
-        $totalBooks = Book::countFilter($filterParams);
+        $books      = BookModel::filter($filterParams, $limit, $offset);
+        $totalBooks = BookModel::countFilter($filterParams);
         $totalPages = ceil($totalBooks / $limit);
         if ($totalPages == 0) $totalPages = 1;
 
         // 4. Lấy dữ liệu Sidebar (Chỉ cần Category)
         // Lưu ý: Dùng getTree() để hiển thị sidebar cây
-        $allCategories = Category::getAll(); // Vẫn lấy all để map tên nếu cần
+        $allCategories = CategoryModel::getAll(); // Vẫn lấy all để map tên nếu cần
         
         // Tên tiêu đề trang
-        $currentCategory = $categoryId > 0 ? Category::find($categoryId) : ['name' => 'Tất cả sản phẩm', 'id'=>0];
+        $currentCategory = $categoryId > 0 ? CategoryModel::find($categoryId) : ['name' => 'Tất cả sản phẩm', 'id'=>0];
         if($searchQuery) $currentCategory['name'] = "Tìm kiếm: " . htmlspecialchars($searchQuery);
 
         // 5. Truyền ra View

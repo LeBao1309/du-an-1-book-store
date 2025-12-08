@@ -47,7 +47,7 @@ class CartController extends BaseController
         }
 
         // Lấy thông tin sách
-        $book = Book::findById($bookId);
+        $book = BookModel::findById($bookId);
         if (!$book) {
             $this->flash('error', 'Không tìm thấy sách');
             $this->redirect('index.php');
@@ -55,7 +55,7 @@ class CartController extends BaseController
         }
 
         // Lấy biến thể để xác định giá (min(sale_price, price))
-        $variants = Book::getVariants($bookId);
+        $variants = BookModel::getVariants($bookId);
         $price    = 0;
 
         if (!empty($variants)) {
@@ -76,7 +76,7 @@ class CartController extends BaseController
         $price = (int)$price;
 
         // Lấy ảnh đại diện
-        $images   = Book::getImages($bookId);
+        $images   = BookModel::getImages($bookId);
         $imageUrl = '';
         if (!empty($images)) {
             $imageUrl = $images[0]['image_url'] ?? '';

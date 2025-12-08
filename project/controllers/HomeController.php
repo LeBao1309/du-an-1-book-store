@@ -1,16 +1,41 @@
 <?php
 
 require_once __DIR__ . '/../models/BookModel.php';
+require_once __DIR__ . '/../models/CategoryModel.php';
 
 final class HomeController extends BaseController
 {
     public function index(): string
     {
       // Lấy 8 sản phẩm mới nhất
-      $newBooks = Book::getNewestProducts(8);
+      $newBooks = BookModel::getNewestProducts(8);
+      
+      // Lấy 8 sản phẩm bán chạy
+      try {
+          $bestSellers = BookModel::getBestSellers(8);
+      } catch (Exception $e) {
+          $bestSellers = [];
+      }
+      
+      // Lấy 8 sản phẩm giảm giá
+      try {
+          $discountedBooks = BookModel::getDiscountedBooks(8);
+      } catch (Exception $e) {
+          $discountedBooks = [];
+      }
+      
+      // Lấy danh mục cha
+      try {
+          $categories = CategoryModel::getParentCategoriesWithCount();
+      } catch (Exception $e) {
+          $categories = [];
+      }
       
       return $this->render('page/index', [
-          'newBooks' => $newBooks
+          'newBooks' => $newBooks,
+          'bestSellers' => $bestSellers,
+          'discountedBooks' => $discountedBooks,
+          'categories' => $categories
       ]);
     }
 
@@ -27,7 +52,7 @@ final class HomeController extends BaseController
         }
 
         // Tìm kiếm (limit 5 kết quả)
-        $results = Book::searchByName($q, 5);
+        $results = BookModel::searchByName($q, 5);
         
         header('Content-Type: application/json');
         echo json_encode($results);

@@ -1,5 +1,12 @@
 <?php
 require_once __DIR__ . '/../models/UserModel.php';
+// Kiểm tra và nạp các model cần thiết
+if (file_exists(__DIR__ . '/../models/OrderModel.php')) {
+    require_once __DIR__ . '/../models/OrderModel.php';
+}
+if (file_exists(__DIR__ . '/../models/WishlistModel.php')) {
+    require_once __DIR__ . '/../models/WishlistModel.php';
+}
 
 final class AccountController extends BaseController
 {
@@ -50,7 +57,6 @@ final class AccountController extends BaseController
             }
 
             UserModel::updateProfile((int)$u['id'], $name, $email);
-
             $_SESSION['user']['name']  = $name;
             $_SESSION['user']['email'] = $email;
 
@@ -80,13 +86,11 @@ final class AccountController extends BaseController
         }
         
         $this->checkCsrf();
-
         $oldPassword = (string)($_POST['old_password'] ?? '');
         $newPassword = (string)($_POST['new_password'] ?? '');
         $newPassword2 = (string)($_POST['confirm_password'] ?? '');
 
         $user = UserModel::findById((int)$u['id']); 
-
         $error = null;
 
         if (!password_verify($oldPassword, $user['password'] ?? '')) {
@@ -104,39 +108,26 @@ final class AccountController extends BaseController
         }
 
         UserModel::updatePassword((int)$u['id'], $newPassword);
-
         $this->flash('success', 'Đổi mật khẩu thành công!');
         $this->redirect('?controller=account&action=password');
         return '';
     }
 
-    /**
-     * Trang Sổ địa chỉ
-     * URL: index.php?controller=account&action=address
-     */
     public function address(): string
     {
         $u = $this->requireLogin();
-        
         $addresses = UserModel::getAddresses((int)$u['id']);
-
         $csrf = $this->csrfToken();
         $active = 'address';
-        
         return $this->render('account/address', compact('addresses', 'csrf', 'active'));
     }
 
-    /**
-     * Thêm địa chỉ mới
-     * URL: POST index.php?controller=account&action=addAddress
-     */
     public function addAddress(): string
     {
         $u = $this->requireLogin();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf();
-
             $address = trim($_POST['full_address'] ?? '');
             $phone = trim($_POST['shipping_phone'] ?? '');
             $isDefault = isset($_POST['is_default']);
@@ -148,80 +139,48 @@ final class AccountController extends BaseController
                 $this->flash('success', 'Thêm địa chỉ giao hàng thành công.');
             }
         }
-        
         $this->redirect('?controller=account&action=address');
         return '';
     }
 
-    /**
-     * Đặt địa chỉ làm mặc định
-     * URL: index.php?controller=account&action=setDefaultAddress&id=ADDRESS_ID
-     */
     public function setDefaultAddress(int $id): string
     {
         $u = $this->requireLogin();
-        
         $address = UserModel::findAddressById($id, (int)$u['id']);
-        
         if (!$address) {
             $this->flash('error', 'Địa chỉ không hợp lệ.');
         } else {
             UserModel::setDefaultAddress($id, (int)$u['id']);
             $this->flash('success', 'Đặt địa chỉ mặc định thành công.');
         }
-
         $this->redirect('?controller=account&action=address');
         return '';
     }
 
-    /**
-     * Xóa địa chỉ
-     * URL: index.php?controller=account&action=deleteAddress&id=ADDRESS_ID
-     */
     public function deleteAddress(int $id): string
     {
         $u = $this->requireLogin();
-        
         $deleted = UserModel::deleteAddress($id, (int)$u['id']);
 
         if ($deleted) {
              $this->flash('success', 'Xóa địa chỉ thành công.');
         } else {
-             $this->flash('error', 'Không thể xóa địa chỉ. Địa chỉ không tồn tại hoặc bạn không có quyền.');
+             $this->flash('error', 'Không thể xóa địa chỉ.');
         }
-
         $this->redirect('?controller=account&action=address');
         return '';
     }
 
-    // ================================================================
-    // PHẦN MỚI THÊM VÀO: DANH SÁCH YÊU THÍCH (WISHLIST)
-    // ================================================================
-
-    /**
-     * Trang danh sách yêu thích
-     * URL: index.php?controller=account&action=wishlist
-     */
     public function wishlist(): string
     {
         $u = $this->requireLogin();
-
-        // Nạp Model Wishlist
         require_once __DIR__ . '/../models/WishlistModel.php';
-
-        // Lấy danh sách
-        $books = Wishlist::getWishlist((int)$u['id']);
-
+        $books = WishlistModel::getWishlist((int)$u['id']);
         $csrf = $this->csrfToken();
-        $active = 'wishlist'; // Để highlight menu bên trái
-
+        $active = 'wishlist'; 
         return $this->render('account/wishlist', compact('books', 'csrf', 'active'));
     }
 
-    /**
-     * Xóa khỏi danh sách yêu thích
-     * URL: index.php?controller=account&action=removeWishlist&id=...
-     */
     public function removeWishlist(): string
     {
         $u = $this->requireLogin();
@@ -229,63 +188,41 @@ final class AccountController extends BaseController
 
         if ($bookId > 0) {
             require_once __DIR__ . '/../models/WishlistModel.php';
-            Wishlist::remove((int)$u['id'], $bookId);
+            WishlistModel::remove((int)$u['id'], $bookId);
             $this->flash('success', 'Đã xóa sản phẩm khỏi danh sách yêu thích');
         }
-
         $this->redirect('?controller=account&action=wishlist');
         return '';
     }
+    
     public function addWishlist(): void
     {
-        // 1. Kiểm tra đăng nhập
         $u = $this->requireLogin();
-        
         $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($bookId > 0) {
             require_once __DIR__ . '/../models/WishlistModel.php';
-            
-            // 2. Gọi Model để thêm
-            Wishlist::add((int)$u['id'], $bookId);
-            
-            // 3. Thông báo
+            WishlistModel::add((int)$u['id'], $bookId);
             $this->flash('success', 'Đã thêm sách vào danh sách yêu thích ❤️');
         }
-
-        // 4. Quay lại trang cũ (để người dùng tiếp tục lướt)
         $backUrl = $_SERVER['HTTP_REFERER'] ?? '?controller=home';
         $this->redirect($backUrl);
     }
-    // --- BẮT ĐẦU PHẦN LỊCH SỬ ĐƠN HÀNG ---
 
-    /**
-     * Hiển thị danh sách đơn hàng
-     * URL: index.php?controller=account&action=orders
-     */
+    // --- PHẦN ĐƠN HÀNG ---
     public function orders(): string
     {
         $u = $this->requireLogin();
-        require_once __DIR__ . '/../models/OrderModel.php';
-
         $orders = OrderModel::getHistory((int)$u['id']);
-        $active = 'orders'; // Để tô màu menu sidebar
-
+        $active = 'orders'; 
         return $this->render('account/orders', compact('orders', 'active'));
     }
 
-    /**
-     * Hiển thị chi tiết đơn hàng
-     * URL: index.php?controller=account&action=orderDetail&id=XXX
-     */
     public function orderDetail(): string
     {
         $u = $this->requireLogin();
-        require_once __DIR__ . '/../models/OrderModel.php';
-
         $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-        // 1. Lấy thông tin đơn (Header)
         $order = OrderModel::getOrderById($orderId, (int)$u['id']);
         if (!$order) {
             $this->flash('error', 'Không tìm thấy đơn hàng này.');
@@ -293,12 +230,38 @@ final class AccountController extends BaseController
             return '';
         }
 
-        // 2. Lấy danh sách món hàng (Items)
         $items = OrderModel::getOrderItems($orderId);
         $active = 'orders';
 
         return $this->render('account/order_detail', compact('order', 'items', 'active'));
     }
     
-    // --- KẾT THÚC PHẦN LỊCH SỬ ĐƠN HÀNG ---
+    public function cancelOrder(): void
+    {
+        $u = $this->requireLogin();
+        $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        // Lý do mặc định
+        $reason = "Khách hàng chủ động hủy"; 
+
+        if (OrderModel::cancelOrder($orderId, (int)$u['id'], $reason)) {
+            $this->flash('success', 'Đã hủy đơn hàng thành công.');
+        } else {
+            $this->flash('error', 'Không thể hủy đơn hàng này (Đơn đã được xử lý hoặc không tồn tại).');
+        }
+        $this->redirect('?controller=account&action=orders');
+    }
+
+    public function confirmReceived(): void
+    {
+        $u = $this->requireLogin();
+        $orderId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if (OrderModel::confirmReceived($orderId, (int)$u['id'])) {
+            $this->flash('success', 'Cảm ơn bạn! Đã xác nhận giao hàng thành công.');
+        } else {
+            $this->flash('error', 'Không thể xác nhận (Đơn chưa được giao hoặc lỗi hệ thống).');
+        }
+        $this->redirect('?controller=account&action=orders');
+    }
 }
