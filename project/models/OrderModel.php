@@ -157,25 +157,35 @@ final class OrderModel extends BaseModel
             $stmtItem = $pdo->prepare($sqlItem);
 
             foreach ($cart as $item) {
-                $qty   = (int)($item['quantity'] ?? 0);
-                $price = (float)($item['price']    ?? 0);
-                $sub   = $qty * $price;
+            $qty   = (int)($item['quantity'] ?? 0);
+            $price = (float)($item['price']    ?? 0);
+            $sub   = $qty * $price;
 
-                // KEY NÀY PHẢI ĐÚNG VỚI GIỎ HÀNG (anh đang dùng variant_id trong cart)
-                $variantId = (int)($item['variant_id'] ?? 0);
+            // 🔹 LẤY variantId ĐÚNG THEO CẤU TRÚC GIỎ HÀNG
+            // ƯU TIÊN 'variant_id', nếu không có thì dùng 'id' (hoặc key khác anh đang dùng)
+            $variantId = 0;
 
-                if ($variantId <= 0 || $qty <= 0) {
-                    continue;
-                }
-
-                $stmtItem->execute([
-                    ':order_id'   => $orderId,
-                    ':variant_id' => $variantId,
-                    ':quantity'   => $qty,
-                    ':price'      => $price,
-                    ':subtotal'   => $sub,
-                ]);
+            if (isset($item['variant_id'])) {
+                $variantId = (int)$item['variant_id'];
+            } elseif (isset($item['id'])) {       // nếu cart đang dùng 'id'
+                $variantId = (int)$item['id'];
+            } elseif (isset($item['book_id'])) {  // hoặc 'book_id' chẳng hạn
+                $variantId = (int)$item['book_id'];
             }
+
+            if ($variantId <= 0 || $qty <= 0) {
+                continue;
+            }
+
+            $stmtItem->execute([
+                ':order_id'   => $orderId,
+                ':variant_id' => $variantId,
+                ':quantity'   => $qty,
+                ':price'      => $price,
+                ':subtotal'   => $sub,
+            ]);
+        }
+
 
             $pdo->commit();
             return $orderId;
