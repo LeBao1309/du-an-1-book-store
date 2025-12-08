@@ -5,15 +5,20 @@ final class AdminPublisherModel extends BaseModel
 {
     public static function paginate(array $filters, int $page = 1, int $perPage = 10): array
     {
-        $where  = [];
-        $params = [];
+        $where  = ['is_deleted = :deleted'];
+        $params = [':deleted' => (int)($filters['deleted'] ?? 0)];
 
-        if ($filters['keyword'] !== '') {
+        if (($filters['keyword'] ?? '') !== '') {
             $where[]       = 'name LIKE :kw';
             $params[':kw'] = '%' . $filters['keyword'] . '%';
         }
 
-        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        if (($filters['status'] ?? '') !== '') {
+            $where[]          = 'is_active = :active';
+            $params[':active'] = (int)$filters['status'];
+        }
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
 
         $sqlCount = "SELECT COUNT(*) FROM publisher {$whereSql}";
         $st = self::db()->prepare($sqlCount);
@@ -23,7 +28,7 @@ final class AdminPublisherModel extends BaseModel
         $offset = ($page - 1) * $perPage;
 
         $sql = "
-            SELECT id, name, slug
+            SELECT id, name, slug, is_active
             FROM publisher
             {$whereSql}
             ORDER BY id DESC
@@ -46,59 +51,91 @@ final class AdminPublisherModel extends BaseModel
         ];
     }
 
-    public static function all(): array
+    public static function allActive(): array
     {
-        $sql = "SELECT id, name, slug FROM publisher ORDER BY name ASC";
+        $sql = "SELECT id, name, slug FROM publisher WHERE is_deleted = 0 AND is_active = 1 ORDER BY name ASC";
         return self::db()->query($sql)->fetchAll();
     }
 
     public static function find(int $id): ?array
     {
-        $sql = "SELECT * FROM publisher WHERE id = :id LIMIT 1";
+        $sql = "SELECT * FROM publisher WHERE id = :id AND is_deleted = 0 LIMIT 1";
         $st  = self::db()->prepare($sql);
         $st->execute([':id' => $id]);
         $row = $st->fetch();
         return $row ?: null;
     }
 
-    public static function create(string $name, string $slug): int
+    public static function findDeleted(int $id): ?array
     {
-        $sql = "INSERT INTO publisher (name, slug)
-                VALUES (:name, :slug)";
+        $sql = "SELECT * FROM publisher WHERE id = :id AND is_deleted = 1 LIMIT 1";
+        $st  = self::db()->prepare($sql);
+        $st->execute([':id' => $id]);
+        $row = $st->fetch();
+        return $row ?: null;
+    }
+
+    public static function isSlugExist(string $slug, int $ignoreId = 0): bool
+    {
+        $sql = "SELECT COUNT(*) FROM publisher WHERE slug = :slug AND is_deleted = 0 AND id != :id";
+        $st  = self::db()->prepare($sql);
+        $st->execute([
+            ':slug' => $slug,
+            ':id'   => $ignoreId,
+        ]);
+        return (bool)$st->fetchColumn();
+    }
+
+    public static function create(string $name, string $slug, bool $isActive = true): int
+    {
+        $sql = "INSERT INTO publisher (name, slug, is_active)
+                VALUES (:name, :slug, :active)";
         $st = self::db()->prepare($sql);
         $st->execute([
-            ':name' => $name,
-            ':slug' => $slug,
+            ':name'   => $name,
+            ':slug'   => $slug,
+            ':active' => $isActive ? 1 : 0,
         ]);
         return (int) self::db()->lastInsertId();
     }
 
-    public static function update(int $id, string $name, string $slug): bool
+    public static function update(int $id, string $name, string $slug, bool $isActive = true): bool
     {
         $sql = "UPDATE publisher
-                SET name = :name, slug = :slug
-                WHERE id = :id";
+                SET name = :name, slug = :slug, is_active = :active
+                WHERE id = :id AND is_deleted = 0";
         $st = self::db()->prepare($sql);
         return $st->execute([
-            ':id'   => $id,
-            ':name' => $name,
-            ':slug' => $slug,
+            ':id'     => $id,
+            ':name'   => $name,
+            ':slug'   => $slug,
+            ':active' => $isActive ? 1 : 0,
         ]);
     }
 
-   public static function delete(int $id): bool
-   {
-      $sql = "DELETE FROM publisher WHERE id = :id";
-      $st  = self::db()->prepare($sql);
-      return $st->execute([':id' => $id]);
-   }
+    public static function softDelete(int $id): bool
+    {
+        $sql = "UPDATE publisher
+                SET is_deleted = 1, deleted_at = NOW(), is_active = 0
+                WHERE id = :id AND is_deleted = 0";
+        $st  = self::db()->prepare($sql);
+        return $st->execute([':id' => $id]);
+    }
+
+    public static function restore(int $id): bool
+    {
+        $sql = "UPDATE publisher
+                SET is_deleted = 0, deleted_at = NULL
+                WHERE id = :id AND is_deleted = 1";
+        $st  = self::db()->prepare($sql);
+        return $st->execute([':id' => $id]);
+    }
 
     public static function countUsedInBooks(int $publisherId): int
-{
-    $sql = "SELECT COUNT(DISTINCT book_id) FROM book_publisher WHERE publisher_id = :id";
-    $st  = self::db()->prepare($sql);
-    $st->execute([':id' => $publisherId]);
-    return (int)$st->fetchColumn();
-}
-
+    {
+        $sql = "SELECT COUNT(DISTINCT book_id) FROM book_publisher WHERE publisher_id = :id";
+        $st  = self::db()->prepare($sql);
+        $st->execute([':id' => $publisherId]);
+        return (int)$st->fetchColumn();
+    }
 }

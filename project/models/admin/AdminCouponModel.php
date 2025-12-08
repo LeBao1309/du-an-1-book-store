@@ -5,13 +5,13 @@ final class AdminCouponModel extends BaseModel
 {
     public static function all(): array
     {
-        $sql = "SELECT * FROM coupons ORDER BY id DESC";
+        $sql = "SELECT * FROM coupons WHERE is_deleted = 0 ORDER BY id DESC";
         return self::db()->query($sql)->fetchAll();
     }
 
     public static function find(int $id): ?array
     {
-        $sql = "SELECT * FROM coupons WHERE id = :id";
+        $sql = "SELECT * FROM coupons WHERE id = :id AND is_deleted = 0";
         $st  = self::db()->prepare($sql);
         $st->execute([':id' => $id]);
         $row = $st->fetch();
@@ -59,7 +59,7 @@ final class AdminCouponModel extends BaseModel
                 starts_at         = :starts_at,
                 ends_at           = :ends_at,
                 is_active         = :active
-            WHERE id = :id
+            WHERE id = :id AND is_deleted = 0
         ";
         $st = self::db()->prepare($sql);
         return $st->execute([
@@ -96,7 +96,9 @@ final class AdminCouponModel extends BaseModel
         if (self::isUsed($id)) {
             return false;
         }
-        $sql = "DELETE FROM coupons WHERE id = :id";
+        $sql = "UPDATE coupons
+                SET is_deleted = 1, deleted_at = NOW(), is_active = 0
+                WHERE id = :id AND is_deleted = 0";
         $st  = self::db()->prepare($sql);
         return $st->execute([':id' => $id]);
     }
@@ -111,6 +113,7 @@ final class AdminCouponModel extends BaseModel
                 COALESCE(SUM(o.discount_amount), 0) AS total_discount
             FROM coupons c
             LEFT JOIN orders o ON o.coupon_id = c.id
+            WHERE c.is_deleted = 0
             GROUP BY c.id, c.code
             ORDER BY c.id DESC
         ";

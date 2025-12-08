@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/AdminBaseController.php';
+require_once __DIR__ . '/BaseAdminController.php';
 require_once __DIR__ . '/../../models/admin/AdminCouponModel.php';
 
-final class CouponAdminController extends AdminBaseController
+final class CouponAdminController extends BaseAdminController
 {
     public function index(): string
     {

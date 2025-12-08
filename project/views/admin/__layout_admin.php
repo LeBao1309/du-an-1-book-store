@@ -82,6 +82,20 @@ $ASSET = $ASSET ?? 'public';
       </header>
 
       <div class="admin-content">
+        <?php if (!empty($_SESSION['flash_error'])): ?>
+          <div class="wd-alert wd-alert-error">
+            <?= htmlspecialchars($_SESSION['flash_error']); ?>
+          </div>
+          <?php unset($_SESSION['flash_error']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($_SESSION['flash_success'])): ?>
+          <div class="wd-alert wd-alert-success">
+            <?= htmlspecialchars($_SESSION['flash_success']); ?>
+          </div>
+          <?php unset($_SESSION['flash_success']); ?>
+        <?php endif; ?>
+
         <?= $content ?>
       </div>
     </main>

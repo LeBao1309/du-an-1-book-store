@@ -9,124 +9,211 @@ USE du_an_1_book_store;
 -- 1. BẢNG AUTHORS (TÁC GIẢ)
 -- ===============================================================
 CREATE TABLE authors (
-                         id INT AUTO_INCREMENT PRIMARY KEY,
-                         name VARCHAR(255) NOT NULL,
-                         slug VARCHAR(255) NOT NULL UNIQUE,
-                         INDEX idx_slug (slug)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_slug (slug)
 ) ENGINE=InnoDB;
 
 -- ===============================================================
 -- 2. BẢNG PUBLISHER (NHÀ XUẤT BẢN)
 -- ===============================================================
 CREATE TABLE publisher (
-                           id INT AUTO_INCREMENT PRIMARY KEY,
-                           name VARCHAR(255) NOT NULL,
-                           slug VARCHAR(255) NOT NULL UNIQUE,
-                           INDEX idx_slug (slug)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_slug (slug)
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 3. BẢNG CATEGORIES (DANH MỤC)
 -- ===============================================================
 CREATE TABLE categories (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            name VARCHAR(255) NOT NULL,
-                            slug VARCHAR(255) NOT NULL UNIQUE,
-                            parent_id INT DEFAULT NULL,
-                            is_active TINYINT(1) NOT NULL DEFAULT 1, -- Đã gộp từ ALTER
-                            INDEX idx_slug (slug),
-                            INDEX idx_parent (parent_id),
-                            CONSTRAINT fk_category_parent
-                                FOREIGN KEY (parent_id) REFERENCES categories(id)
-                                    ON DELETE SET NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    parent_id INT DEFAULT NULL,
+
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_slug (slug),
+    INDEX idx_parent (parent_id),
+
+    CONSTRAINT fk_category_parent
+        FOREIGN KEY (parent_id) REFERENCES categories(id)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 4. BẢNG USERS (NGƯỜI DÙNG)
 -- ===============================================================
 CREATE TABLE users (
-                       id INT AUTO_INCREMENT PRIMARY KEY,
-                       name VARCHAR(255) NOT NULL,
-                       email VARCHAR(255) NOT NULL UNIQUE,
-                       password VARCHAR(255) NOT NULL COMMENT 'BCrypt hashed',
-                       role ENUM('admin', 'user') DEFAULT 'user',
-                       is_active TINYINT(1) DEFAULT 1,
-                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                       INDEX idx_email (email)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin','user') DEFAULT 'user',
+
+    is_active TINYINT(1) DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_email (email)
 ) ENGINE=InnoDB;
+
+-- ===============================================================
+-- 4b. BẢNG PASSWORD RESETS (KHÔI PHỤC MẬT KHẨU)
+-- ===============================================================
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(100) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_user (user_id),
+    CONSTRAINT fk_pr_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 5. BẢNG USER_ADDRESS (SỔ ĐỊA CHỈ)
 -- ===============================================================
 CREATE TABLE user_address (
-                              id INT AUTO_INCREMENT PRIMARY KEY,
-                              user_id INT NOT NULL,
-                              full_address TEXT NOT NULL,
-                              shipping_phone VARCHAR(20),
-                              is_default TINYINT(1) DEFAULT 0,
-                              INDEX idx_user (user_id),
-                              CONSTRAINT fk_address_user
-                                  FOREIGN KEY (user_id) REFERENCES users(id)
-                                      ON DELETE CASCADE
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+
+    full_address TEXT NOT NULL,
+    shipping_phone VARCHAR(20),
+    is_default TINYINT(1) DEFAULT 0,
+
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_user (user_id),
+
+    CONSTRAINT fk_address_user
+      FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 6. BẢNG COUPONS (MÃ GIẢM GIÁ)
 -- (Tạo trước bảng orders để orders có thể tham chiếu tới)
 -- ===============================================================
 CREATE TABLE coupons (
-                         id INT AUTO_INCREMENT PRIMARY KEY,
-                         code VARCHAR(50) NOT NULL UNIQUE,
-                         type ENUM('percent', 'fixed') NOT NULL DEFAULT 'percent',
-                         value DECIMAL(10,2) NOT NULL,
-                         max_discount DECIMAL(10,2) DEFAULT NULL,
-                         min_order_total DECIMAL(10,2) DEFAULT 0,
-                         usage_limit INT DEFAULT NULL,
-                         max_uses_per_user INT DEFAULT NULL, -- Đã gộp từ ALTER
-                         used_count INT DEFAULT 0,
-                         starts_at DATETIME NULL,
-                         ends_at DATETIME NULL,
-                         is_active TINYINT(1) DEFAULT 1,
-                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                         INDEX idx_active (is_active),
-                         INDEX idx_time (starts_at, ends_at)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    type ENUM('percent','fixed') NOT NULL DEFAULT 'percent',
+    value DECIMAL(10,2) NOT NULL,
+
+    max_discount DECIMAL(10,2) DEFAULT NULL,
+    min_order_total DECIMAL(10,2) DEFAULT 0,
+
+    usage_limit INT DEFAULT NULL,
+    max_uses_per_user INT DEFAULT NULL,
+    used_count INT DEFAULT 0,
+
+    starts_at DATETIME NULL,
+    ends_at DATETIME NULL,
+
+    is_active TINYINT(1) DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_active (is_active),
+    INDEX idx_time (starts_at, ends_at)
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 7. BẢNG BOOKS (SÁCH)
 -- ===============================================================
 CREATE TABLE books (
-                       id INT AUTO_INCREMENT PRIMARY KEY,
-                       title VARCHAR(500) NOT NULL,
-                       slug VARCHAR(500) NOT NULL UNIQUE,
-                       category_id INT NOT NULL,
-                       description TEXT,
-                       short_desc VARCHAR(500),
-                       rating_avg DECIMAL(3,2) DEFAULT 0.00,
-                       review_count INT DEFAULT 0,
-                       is_active TINYINT(1) DEFAULT 1,
-                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                       INDEX idx_slug (slug),
-                       INDEX idx_category (category_id),
-                       CONSTRAINT fk_book_category
-                           FOREIGN KEY (category_id) REFERENCES categories(id)
-                               ON DELETE RESTRICT
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    slug VARCHAR(500) NOT NULL UNIQUE,
+    category_id INT NOT NULL,
+
+    description TEXT,
+    short_desc VARCHAR(500),
+
+    rating_avg DECIMAL(3,2) DEFAULT 0.00,
+    review_count INT DEFAULT 0,
+
+    is_active TINYINT(1) DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_slug (slug),
+    INDEX idx_category (category_id),
+
+    CONSTRAINT fk_book_category
+      FOREIGN KEY (category_id) REFERENCES categories(id)
+      ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 8. BẢNG BOOK_IMAGES (ẢNH SÁCH)
 -- ===============================================================
 CREATE TABLE book_images (
-                             id INT AUTO_INCREMENT PRIMARY KEY,
-                             book_id INT NOT NULL,
-                             image_url VARCHAR(255) NOT NULL,
-                             sort_order INT DEFAULT 0 COMMENT '0 là thumbnail, 1 2 3... là ảnh chi tiết',
-                             CONSTRAINT fk_book_images_book
-                                 FOREIGN KEY (book_id) REFERENCES books(id)
-                                     ON DELETE CASCADE
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+
+    image_url VARCHAR(255) NOT NULL,
+    sort_order INT DEFAULT 0,
+
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_book_images_book
+        FOREIGN KEY (book_id) REFERENCES books(id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 9. BẢNG BOOK_AUTHORS (SÁCH - TÁC GIẢ, N-N)
@@ -165,16 +252,26 @@ CREATE TABLE book_publisher (
 -- 11. BẢNG BOOK_VARIANTS (PHIÊN BẢN SÁCH)
 -- ===============================================================
 CREATE TABLE book_variants (
-                               id INT AUTO_INCREMENT PRIMARY KEY,
-                               book_id INT NOT NULL,
-                               format VARCHAR(50) COMMENT 'e.g., hardcover, paperback',
-                               price DECIMAL(10,2) NOT NULL,
-                               sale_price DECIMAL(10,2),
-                               stock INT DEFAULT 0,
-                               CONSTRAINT fk_variant_book
-                                   FOREIGN KEY (book_id) REFERENCES books(id)
-                                       ON DELETE CASCADE
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+
+    format VARCHAR(50),
+    price DECIMAL(10,2) NOT NULL,
+    sale_price DECIMAL(10,2),
+    stock INT DEFAULT 0,
+
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME DEFAULT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_variant_book
+        FOREIGN KEY (book_id) REFERENCES books(id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
 
 -- ===============================================================
 -- 12. BẢNG COMMENTS (BÌNH LUẬN)

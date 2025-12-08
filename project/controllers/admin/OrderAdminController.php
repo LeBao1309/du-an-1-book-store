@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/AdminBaseController.php';
+require_once __DIR__ . '/BaseAdminController.php';
 require_once __DIR__ . '/../../models/admin/AdminOrderModel.php';
 
-final class OrderAdminController extends AdminBaseController{
+final class OrderAdminController extends BaseAdminController{
         public function index(): string
     {
         $page = max(1, (int)($_GET['page'] ?? 1));

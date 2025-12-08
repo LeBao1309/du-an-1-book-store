@@ -1,72 +1,97 @@
 <?php
 
 /**
- * EmailService - Dịch vụ gửi email qua Gmail SMTP
- * Không cần PHPMailer, sử dụng SMTP socket trực tiếp
+ * EmailService - Dịch vụ gửi email qua SMTP (Gmail App Password).
+ * Đọc cấu hình từ config/email.php, có thể override qua tham số truyền vào constructor.
  */
-class EmailService {
-    
-    private $smtpHost = 'smtp.gmail.com';
-    private $smtpPort = 587;
-    private $username = 'toanvotruong276@gmail.com';
-    private $password = ''; // Điền App Password vào đây
-    private $fromEmail = 'toanvotruong276@gmail.com';
-    private $fromName = 'Book Store';
-    
-    /**
-     * Gửi email liên hệ
-     */
-    public function sendContactEmail($toEmail, $fromName, $fromEmail, $subject, $messageBody, $phone = '') {
-        try {
-            // Kiểm tra App Password
-            if (empty($this->password)) {
-                error_log("EmailService: App Password chưa được cấu hình. Password = " . var_export($this->password, true));
-                return false;
+class EmailService
+{
+    private string $smtpHost = 'smtp.gmail.com';
+    private int $smtpPort = 587;
+    private string $username = '';
+    private string $password = '';
+    private string $fromEmail = '';
+    private string $fromName = 'Book Store';
+
+    public function __construct(array $override = [])
+    {
+        $config = [];
+        $file = __DIR__ . '/../config/email.php';
+        if (file_exists($file)) {
+            $cfg = include $file;
+            if (is_array($cfg)) {
+                $config = $cfg;
             }
-            
-            error_log("EmailService: Đang gửi email tới {$toEmail} từ {$fromEmail}");
-            
-            // Tạo nội dung email HTML
-            $htmlContent = $this->createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone);
-            
-            // Tạo headers
-            $boundary = md5(uniqid(time()));
-            
-            $headers = array();
-            $headers[] = "From: {$this->fromName} <{$this->fromEmail}>";
-            $headers[] = "Reply-To: {$fromName} <{$fromEmail}>";
-            $headers[] = "MIME-Version: 1.0";
-            $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
-            $headers[] = "X-Mailer: PHP/" . phpversion();
-            
-            // Tạo body với plain text và HTML
-            $body = "--{$boundary}\r\n";
-            $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-            $body .= $this->createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone);
-            $body .= "\r\n\r\n--{$boundary}\r\n";
-            $body .= "Content-Type: text/html; charset=UTF-8\r\n";
-            $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-            $body .= $htmlContent;
-            $body .= "\r\n\r\n--{$boundary}--";
-            
-            // Gửi email qua SMTP socket
-            return $this->sendViaSMTP($toEmail, "[Book Store] " . $subject, $body, $headers);
-            
-        } catch (Exception $e) {
-            error_log("EmailService Error: " . $e->getMessage());
+        }
+        $config = array_merge($config, $override);
+
+        $this->smtpHost  = $config['smtp_host']  ?? $this->smtpHost;
+        $this->smtpPort  = (int)($config['smtp_port'] ?? $this->smtpPort);
+        $this->username  = $config['username']   ?? $this->username;
+        $this->password  = $config['password']   ?? $this->password;
+        $this->fromEmail = $config['from_email'] ?? $this->username;
+        $this->fromName  = $config['from_name']  ?? $this->fromName;
+    }
+
+    /**
+     * Gửi email text đơn giản (dùng cho reset password).
+     */
+    public function sendPlain(string $toEmail, string $toName, string $subject, string $body): bool
+    {
+        if (empty($this->username) || empty($this->password)) {
+            error_log("EmailService: SMTP chưa cấu hình, bỏ qua gửi.");
             return false;
         }
+
+        $headers = [];
+        $headers[] = "From: {$this->fromName} <{$this->fromEmail}>";
+        $headers[] = "To: {$toName} <{$toEmail}>";
+        $headers[] = "MIME-Version: 1.0";
+        $headers[] = "Content-Type: text/plain; charset=UTF-8";
+        $headers[] = "Content-Transfer-Encoding: 8bit";
+
+        return $this->sendViaSMTP($toEmail, $subject, $body, $headers);
     }
-    
+
     /**
-     * Tạo template HTML cho email
+     * Gửi email liên hệ (giữ lại để tương thích).
      */
-    private function createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone) {
+    public function sendContactEmail($toEmail, $fromName, $fromEmail, $subject, $messageBody, $phone = '')
+    {
+        if (empty($this->password)) {
+            error_log("EmailService: App Password chưa được cấu hình.");
+            return false;
+        }
+
+        $htmlContent = $this->createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone);
+        $boundary = md5(uniqid(time()));
+
+        $headers = [];
+        $headers[] = "From: {$this->fromName} <{$this->fromEmail}>";
+        $headers[] = "Reply-To: {$fromName} <{$fromEmail}>";
+        $headers[] = "MIME-Version: 1.0";
+        $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
+        $headers[] = "X-Mailer: PHP/" . phpversion();
+
+        $body = "--{$boundary}\r\n";
+        $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+        $body .= $this->createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone);
+        $body .= "\r\n\r\n--{$boundary}\r\n";
+        $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+        $body .= $htmlContent;
+        $body .= "\r\n\r\n--{$boundary}--";
+
+        return $this->sendViaSMTP($toEmail, "[Book Store] " . $subject, $body, $headers);
+    }
+
+    private function createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone)
+    {
         $phoneDisplay = $phone ? $phone : 'Không cung cấp';
         $dateTime = date('d/m/Y H:i:s');
         $messageHtml = htmlspecialchars($messageBody);
-        
+
         return <<<HTML
 <!DOCTYPE html>
 <html>
@@ -120,14 +145,12 @@ class EmailService {
 </html>
 HTML;
     }
-    
-    /**
-     * Tạo plain text email (fallback)
-     */
-    private function createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone) {
+
+    private function createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone)
+    {
         $phoneDisplay = $phone ? $phone : 'Không cung cấp';
         $dateTime = date('d/m/Y H:i:s');
-        
+
         return "LIÊN HỆ MỚI TỪ WEBSITE BOOK STORE\n" .
                "=====================================\n\n" .
                "Họ và tên: {$fromName}\n" .
@@ -140,102 +163,66 @@ HTML;
                "-------------------------------------\n\n" .
                "Email này được gửi từ form liên hệ trên website Book Store.";
     }
-    
+
     /**
      * Gửi email qua SMTP socket
      */
-    private function sendViaSMTP($to, $subject, $body, $headers) {
-        // Kết nối tới SMTP server
-        error_log("Attempting to connect to {$this->smtpHost}:{$this->smtpPort}");
+    private function sendViaSMTP($to, $subject, $body, $headers)
+    {
         $socket = @fsockopen($this->smtpHost, $this->smtpPort, $errno, $errstr, 30);
-        
         if (!$socket) {
             error_log("SMTP Connection FAILED: {$errno} - {$errstr}");
             return false;
         }
-        
-        error_log("SMTP Connection SUCCESS");
-        
-        // Đọc response ban đầu
-        $response = fgets($socket, 515);
-        error_log("SMTP Initial Response: " . trim($response));
-        
-        if (substr($response, 0, 3) != '220') {
-            error_log("SMTP Error: Expected 220, got " . substr($response, 0, 3));
+
+        $resp = fgets($socket, 515);
+        if (substr($resp, 0, 3) !== '220') {
             fclose($socket);
             return false;
         }
-        
-        // EHLO
+
         fputs($socket, "EHLO {$this->smtpHost}\r\n");
-        $response = fgets($socket, 515);
-        
-        // STARTTLS
+        fgets($socket, 515);
+
         fputs($socket, "STARTTLS\r\n");
-        $response = fgets($socket, 515);
-        
-        if (substr($response, 0, 3) == '220') {
-            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-            
-            // EHLO lại sau khi TLS
-            fputs($socket, "EHLO {$this->smtpHost}\r\n");
-            $response = fgets($socket, 515);
-            
-            // AUTH LOGIN
-            fputs($socket, "AUTH LOGIN\r\n");
-            fgets($socket, 515);
-            
-            fputs($socket, base64_encode($this->username) . "\r\n");
-            fgets($socket, 515);
-            
-            fputs($socket, base64_encode($this->password) . "\r\n");
-            $response = fgets($socket, 515);
-            
-            if (substr($response, 0, 3) != '235') {
-                fclose($socket);
-                error_log("SMTP Auth Failed");
-                return false;
-            }
-            
-            // MAIL FROM
-            fputs($socket, "MAIL FROM: <{$this->fromEmail}>\r\n");
-            fgets($socket, 515);
-            
-            // RCPT TO
-            fputs($socket, "RCPT TO: <{$to}>\r\n");
-            fgets($socket, 515);
-            
-            // DATA
-            fputs($socket, "DATA\r\n");
-            fgets($socket, 515);
-            
-            // Headers và Body
-            fputs($socket, "To: {$to}\r\n");
-            fputs($socket, "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n");
-            foreach ($headers as $header) {
-                fputs($socket, $header . "\r\n");
-            }
-            fputs($socket, "\r\n");
-            fputs($socket, $body);
-            fputs($socket, "\r\n.\r\n");
-            
-            $response = fgets($socket, 515);
-            
-            // QUIT
-            fputs($socket, "QUIT\r\n");
+        $resp = fgets($socket, 515);
+        if (substr($resp, 0, 3) !== '220') {
             fclose($socket);
-            
-            return substr($response, 0, 3) == '250';
+            return false;
         }
-        
+        stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+
+        fputs($socket, "EHLO {$this->smtpHost}\r\n");
+        fgets($socket, 515);
+
+        fputs($socket, "AUTH LOGIN\r\n");
+        fgets($socket, 515);
+        fputs($socket, base64_encode($this->username) . "\r\n");
+        fgets($socket, 515);
+        fputs($socket, base64_encode($this->password) . "\r\n");
+        $resp = fgets($socket, 515);
+        if (substr($resp, 0, 3) !== '235') {
+            fclose($socket);
+            error_log("SMTP Auth Failed");
+            return false;
+        }
+
+        fputs($socket, "MAIL FROM: <{$this->fromEmail}>\r\n"); fgets($socket, 515);
+        fputs($socket, "RCPT TO: <{$to}>\r\n"); fgets($socket, 515);
+        fputs($socket, "DATA\r\n"); fgets($socket, 515);
+
+        fputs($socket, "To: {$to}\r\n");
+        fputs($socket, "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n");
+        foreach ($headers as $h) {
+            fputs($socket, $h . "\r\n");
+        }
+        fputs($socket, "\r\n");
+        fputs($socket, $body);
+        fputs($socket, "\r\n.\r\n");
+        $resp = fgets($socket, 515);
+        fputs($socket, "QUIT\r\n");
         fclose($socket);
-        return false;
-    }
-    
-    /**
-     * Cấu hình App Password
-     */
-    public function setAppPassword($password) {
-        $this->password = $password;
+
+        return substr($resp, 0, 3) === '250';
     }
 }
