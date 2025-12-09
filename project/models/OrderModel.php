@@ -65,7 +65,9 @@ final class OrderModel extends BaseModel
         ?array $shipping,
         array $cart,
         string $shippingStatus = 'pending',
-        ?string $note = null
+        ?string $note = null,
+        ?int $couponId = null,
+        float $discountAmount = 0.0
     ): int {
         if (empty($cart)) {
             throw new \RuntimeException('Giỏ hàng trống, không thể tạo đơn.');
@@ -101,6 +103,8 @@ final class OrderModel extends BaseModel
                     user_id,
                     user_address_id,
                     total,
+                    coupon_id,
+                    discount_amount,
                     shipping_status,
                     shipping_address,
                     shipping_phone,
@@ -111,6 +115,8 @@ final class OrderModel extends BaseModel
                     :user_id,
                     :user_address_id,
                     :total,
+                    :coupon_id,
+                    :discount_amount,
                     :shipping_status,
                     :shipping_address,
                     :shipping_phone,
@@ -124,6 +130,8 @@ final class OrderModel extends BaseModel
                 ':user_id'         => $userId,
                 ':user_address_id' => $userAddressId,
                 ':total'           => $totalAmount,
+                ':coupon_id'       => $couponId,
+                ':discount_amount' => $discountAmount,
                 ':shipping_status' => $shippingStatus,
                 ':shipping_address'=> $shippingAddress,
                 ':shipping_phone'  => $shippingPhone,

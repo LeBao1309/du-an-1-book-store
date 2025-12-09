@@ -12,6 +12,8 @@ require_once __DIR__ . '/../controllers/admin/AuthorAdminController.php';
 require_once __DIR__ . '/../controllers/admin/PublisherAdminController.php';
 require_once __DIR__ . '/../controllers/admin/CouponAdminController.php';
 require_once __DIR__ . '/../controllers/admin/OrderAdminController.php';
+require_once __DIR__ . '/../controllers/admin/CommentAdminController.php';
+require_once __DIR__ . '/../controllers/admin/QuestionAdminController.php';
 
 $c = $_GET['c'] ?? 'dashboard';
 $a = $_GET['a'] ?? 'index';
@@ -30,6 +32,8 @@ $controllerMap = [
     'publishers'    => PublisherAdminController::class,
     'coupons'       => CouponAdminController::class,
     'orders'        => OrderAdminController::class,
+    'comments'      => CommentAdminController::class,
+    'qa'            => QuestionAdminController::class,
 ];
 
 $cls = $controllerMap[$c] ?? null;

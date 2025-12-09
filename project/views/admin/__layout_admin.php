@@ -53,6 +53,14 @@ $ASSET = $ASSET ?? 'public';
         <span class="icon">🎟️</span> <span>Mã giảm giá</span>
       </a>
 
+      <a href="#" class="menu-section">NỘI DUNG</a>
+      <a href="index.php?c=comments&a=index" class="menu-item">
+        <span class="icon">💬</span> <span>Bình luận</span>
+      </a>
+      <a href="index.php?c=qa&a=index" class="menu-item">
+        <span class="icon">❓</span> <span>Hỏi đáp</span>
+      </a>
+
       <a href="#" class="menu-section">NGƯỜI DÙNG</a>
       <a href="index.php?c=users&a=index" class="menu-item">
         <span class="icon">👥</span> <span>Tài khoản</span>

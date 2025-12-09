@@ -8,6 +8,7 @@ class EmailService
 {
     private string $smtpHost = 'smtp.gmail.com';
     private int $smtpPort = 587;
+    private string $smtpSecure = 'tls'; // tls|ssl
     private string $username = '';
     private string $password = '';
     private string $fromEmail = '';
@@ -27,6 +28,7 @@ class EmailService
 
         $this->smtpHost  = $config['smtp_host']  ?? $this->smtpHost;
         $this->smtpPort  = (int)($config['smtp_port'] ?? $this->smtpPort);
+        $this->smtpSecure = $config['smtp_secure'] ?? $this->smtpSecure;
         $this->username  = $config['username']   ?? $this->username;
         $this->password  = $config['password']   ?? $this->password;
         $this->fromEmail = $config['from_email'] ?? $this->username;
@@ -40,6 +42,7 @@ class EmailService
     {
         if (empty($this->username) || empty($this->password)) {
             error_log("EmailService: SMTP chưa cấu hình, bỏ qua gửi.");
+            $this->saveLocalCopy($toEmail, $subject, $body);
             return false;
         }
 
@@ -49,6 +52,15 @@ class EmailService
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "Content-Type: text/plain; charset=UTF-8";
         $headers[] = "Content-Transfer-Encoding: 8bit";
+
+        // Ưu tiên PHPMailer nếu đã cài bằng Composer (khuyến nghị)
+        if ($this->canUsePHPMailer()) {
+            $sent = $this->sendViaPHPMailer($toEmail, $toName, $subject, nl2br($body), false);
+            if (!$sent) {
+                $this->saveLocalCopy($toEmail, $subject, $body);
+            }
+            return $sent;
+        }
 
         return $this->sendViaSMTP($toEmail, $subject, $body, $headers);
     }
@@ -84,6 +96,57 @@ class EmailService
         $body .= "\r\n\r\n--{$boundary}--";
 
         return $this->sendViaSMTP($toEmail, "[Book Store] " . $subject, $body, $headers);
+    }
+
+    /**
+     * Kiểm tra có thể dùng PHPMailer (đã cài composer) hay chưa.
+     */
+    private function canUsePHPMailer(): bool
+    {
+        $autoload = __DIR__ . '/../vendor/autoload.php';
+        if (file_exists($autoload)) {
+            require_once $autoload;
+        }
+        return class_exists('\\PHPMailer\\PHPMailer\\PHPMailer');
+    }
+
+    /**
+     * Gửi qua PHPMailer (khuyến nghị)
+     */
+    private function sendViaPHPMailer(string $toEmail, string $toName, string $subject, string $htmlBody, bool $isHtml = true): bool
+    {
+        if (!class_exists('\\PHPMailer\\PHPMailer\\PHPMailer')) {
+            return false;
+        }
+        try {
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host       = $this->smtpHost;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $this->username;
+            $mail->Password   = $this->password;
+            $mail->Port       = $this->smtpPort;
+            $mail->SMTPSecure = strtolower($this->smtpSecure) === 'ssl'
+                ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+                : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+
+            $mail->CharSet = 'UTF-8';
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->addAddress($toEmail, $toName);
+            $mail->Subject = $subject;
+            if ($isHtml) {
+                $mail->isHTML(true);
+                $mail->Body    = $htmlBody;
+                $mail->AltBody = strip_tags(str_replace("<br>", "\n", $htmlBody));
+            } else {
+                $mail->isHTML(false);
+                $mail->Body = $htmlBody;
+            }
+            return $mail->send();
+        } catch (\Throwable $e) {
+            error_log('PHPMailer send failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     private function createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone)
@@ -169,31 +232,40 @@ HTML;
      */
     private function sendViaSMTP($to, $subject, $body, $headers)
     {
-        $socket = @fsockopen($this->smtpHost, $this->smtpPort, $errno, $errstr, 30);
+        $host = (strtolower($this->smtpSecure) === 'ssl')
+            ? "ssl://{$this->smtpHost}"
+            : $this->smtpHost;
+
+        $socket = @fsockopen($host, $this->smtpPort, $errno, $errstr, 30);
         if (!$socket) {
             error_log("SMTP Connection FAILED: {$errno} - {$errstr}");
+            $this->saveLocalCopy($to, $subject, $body);
             return false;
         }
 
         $resp = fgets($socket, 515);
         if (substr($resp, 0, 3) !== '220') {
             fclose($socket);
+            $this->saveLocalCopy($to, $subject, $body);
             return false;
         }
 
         fputs($socket, "EHLO {$this->smtpHost}\r\n");
         fgets($socket, 515);
 
-        fputs($socket, "STARTTLS\r\n");
-        $resp = fgets($socket, 515);
-        if (substr($resp, 0, 3) !== '220') {
-            fclose($socket);
-            return false;
-        }
-        stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        if (strtolower($this->smtpSecure) !== 'ssl') {
+            fputs($socket, "STARTTLS\r\n");
+            $resp = fgets($socket, 515);
+            if (substr($resp, 0, 3) !== '220') {
+                fclose($socket);
+                $this->saveLocalCopy($to, $subject, $body);
+                return false;
+            }
+            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
 
-        fputs($socket, "EHLO {$this->smtpHost}\r\n");
-        fgets($socket, 515);
+            fputs($socket, "EHLO {$this->smtpHost}\r\n");
+            fgets($socket, 515);
+        }
 
         fputs($socket, "AUTH LOGIN\r\n");
         fgets($socket, 515);
@@ -204,6 +276,7 @@ HTML;
         if (substr($resp, 0, 3) !== '235') {
             fclose($socket);
             error_log("SMTP Auth Failed");
+            $this->saveLocalCopy($to, $subject, $body);
             return false;
         }
 
@@ -223,6 +296,25 @@ HTML;
         fputs($socket, "QUIT\r\n");
         fclose($socket);
 
-        return substr($resp, 0, 3) === '250';
+        $ok = substr($resp, 0, 3) === '250';
+        if (!$ok) {
+            $this->saveLocalCopy($to, $subject, $body);
+        }
+        return $ok;
+    }
+
+    /**
+     * Lưu email vào file log để kiểm thử local khi SMTP không gửi được.
+     */
+    private function saveLocalCopy(string $to, string $subject, string $body): void
+    {
+        $dir = __DIR__ . '/../storage/logs';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        $file = $dir . '/dev_mail.log';
+        $content = "==== " . date('Y-m-d H:i:s') . " ====\nTo: {$to}\nSubject: {$subject}\nBody:\n{$body}\n\n";
+        @file_put_contents($file, $content, FILE_APPEND);
+        error_log("EmailService: Lưu email local tại {$file}");
     }
 }

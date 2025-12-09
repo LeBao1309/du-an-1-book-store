@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../models/UserModel.php';   // vì bạn dùng UserModel::getAddresses
 require_once __DIR__ . '/../models/OrderModel.php'; // để dùng OrderModel::createFromCart
+require_once __DIR__ . '/../models/CouponModel.php';
 /**
  * PaymentController
  *
@@ -59,7 +60,26 @@ public function checkout(): string
         && !empty($shipping['shipping_phone'])
         && !empty($shipping['full_address']);
 
-    $totalAmount   = $this->getCartAmount(); // dùng hàm em đã có sẵn
+    $totalAmount   = $this->getCartAmount(); // tổng trước giảm
+    $appliedCoupon = null;
+    $discountAmount = 0;
+
+    // Re-validate coupon nếu đã lưu trong session
+    if (!empty($_SESSION['checkout_coupon']['code'])) {
+        $code = $_SESSION['checkout_coupon']['code'];
+        $res = CouponModel::validateForOrder($code, $userId, $totalAmount);
+        if ($res['ok']) {
+            $appliedCoupon  = $res['coupon'];
+            $discountAmount = $res['discount'];
+            // lưu lại để process dùng
+            $_SESSION['checkout_coupon']['coupon_id'] = $appliedCoupon['id'];
+            $_SESSION['checkout_coupon']['discount']  = $discountAmount;
+        } else {
+            unset($_SESSION['checkout_coupon']);
+            $this->flash('warning', $res['error']);
+        }
+    }
+
     $totalQuantity = 0;
     foreach ($cart as $item) {
         $totalQuantity += (int)($item['quantity'] ?? 0);
@@ -73,6 +93,8 @@ public function checkout(): string
         'shipping'      => $shipping,
         'addresses'     => $addresses,   // 🔹 TRUYỀN XUỐNG VIEW
         'totalAmount'   => $totalAmount,
+        'appliedCoupon' => $appliedCoupon,
+        'discountAmount'=> $discountAmount,
         'totalQuantity' => $totalQuantity,
         'canCheckout'   => $canCheckout,
         'csrf'          => $csrf,
@@ -111,6 +133,49 @@ public function selectShipping(): void
     $this->redirect('index.php?controller=payment&action=checkout');
 }
 
+    /**
+     * Áp dụng mã giảm giá (POST từ checkout)
+     */
+    public function applyCoupon(): void
+    {
+        $this->requireAuth();
+        $this->checkCsrf();
+
+        $code = trim($_POST['coupon_code'] ?? '');
+        if ($code === '') {
+            $this->flash('warning', 'Vui lòng nhập mã giảm giá.');
+            $this->redirect('index.php?controller=payment&action=checkout');
+        }
+
+        $currentUser = $_SESSION['user'] ?? null;
+        $userId = (int)($currentUser['id'] ?? 0);
+        $total = $this->getCartAmount();
+
+        $res = CouponModel::validateForOrder($code, $userId, $total);
+        if ($res['ok']) {
+            $_SESSION['checkout_coupon'] = [
+                'code'      => $code,
+                'coupon_id' => $res['coupon']['id'],
+                'discount'  => $res['discount'],
+            ];
+            $this->flash('success', 'Đã áp dụng mã giảm giá.');
+        } else {
+            unset($_SESSION['checkout_coupon']);
+            $this->flash('warning', $res['error']);
+        }
+
+        $this->redirect('index.php?controller=payment&action=checkout');
+    }
+
+    public function removeCoupon(): void
+    {
+        $this->requireAuth();
+        $this->checkCsrf();
+        unset($_SESSION['checkout_coupon']);
+        $this->flash('success', 'Đã bỏ mã giảm giá.');
+        $this->redirect('index.php?controller=payment&action=checkout');
+    }
+
 
 
 
@@ -141,19 +206,41 @@ public function selectShipping(): void
             return '';
         }
 
+        $currentUser = $_SESSION['user'] ?? null;
+        $userId = (int)($currentUser['id'] ?? 0);
+
+        // Áp mã giảm giá (nếu có) và tính lại tổng
+        $discountAmount = 0.0;
+        $couponId = null;
+        if (!empty($_SESSION['checkout_coupon']['code'])) {
+            $code = $_SESSION['checkout_coupon']['code'];
+            $res = CouponModel::validateForOrder($code, $userId, $totalAmount);
+            if ($res['ok']) {
+                $discountAmount = $res['discount'];
+                $couponId = $res['coupon']['id'];
+                $_SESSION['checkout_coupon']['coupon_id'] = $couponId;
+                $_SESSION['checkout_coupon']['discount']  = $discountAmount;
+            } else {
+                unset($_SESSION['checkout_coupon']);
+                $this->flash('warning', $res['error']);
+            }
+        }
+
+        $payable = max(0, $totalAmount - $discountAmount);
+
         $method = $_POST['payment_method'] ?? '';
 
         switch ($method) {
             case 'vnpay':
-                $this->payWithVnpay($totalAmount);
+                $this->payWithVnpay($payable);
                 return ''; // payWithVnpay sẽ redirect + exit
 
             case 'momo':
-                $this->payWithMomo($totalAmount);
+                $this->payWithMomo($payable);
                 return ''; // payWithMomo sẽ redirect + exit
 
             case 'cod':
-                return $this->payWithCod($totalAmount);
+                return $this->payWithCod($payable, $couponId, $discountAmount);
 
             default:
                 $this->flash('error', 'Phương thức thanh toán không hợp lệ');
@@ -267,16 +354,26 @@ public function selectShipping(): void
         // 🔹 TẠO ĐƠN HÀNG TRONG DB
         // Giả sử OrderModel::createFromCart:
         // createFromCart(int $userId, ?array $shipping, array $cart, string $shippingStatus = 'pending', ?string $note = null): int
+        $couponId = $_SESSION['checkout_coupon']['coupon_id'] ?? null;
+        $discount = $_SESSION['checkout_coupon']['discount'] ?? 0;
+
         $orderId = OrderModel::createFromCart(
             $userId,
             $shipping,
             $cart,
             'pending',          // shipping_status ban đầu
-            $note               // ghi chú: "Thanh toán VNPay/MoMo ..."
+            $note,              // ghi chú: "Thanh toán VNPay/MoMo ..."
+            $couponId ? (int)$couponId : null,
+            (float)$discount
         );
+
+        if ($orderId && $couponId) {
+            CouponModel::incrementUsage((int)$couponId);
+        }
 
         // Xoá giỏ sau khi tạo đơn
         unset($_SESSION['cart']);
+        unset($_SESSION['checkout_coupon']);
 
         return $orderId;
     }
@@ -476,7 +573,7 @@ public function selectShipping(): void
 /**
  * Thanh toán khi nhận hàng (COD)
  */
-private function payWithCod(int $totalAmount): string
+private function payWithCod(int $totalAmount, ?int $couponId = null, float $discountAmount = 0.0): string
 {
     // 1. LẤY GIỎ HÀNG
     $cart = $_SESSION['cart'] ?? [];
@@ -514,8 +611,14 @@ private function payWithCod(int $totalAmount): string
         $shipping,
         $cart,
         'pending',              // shipping_status ban đầu
-        'Thanh toán COD'        // ghi chú
+        'Thanh toán COD',       // ghi chú
+        $couponId,
+        $discountAmount
     );
+
+    if ($orderId && $couponId) {
+        CouponModel::incrementUsage((int)$couponId);
+    }
 
     // 5. LẤY DANH SÁCH SẢN PHẨM TRONG ĐƠN VỪA TẠO
     $orderItems = OrderModel::getOrderItems($orderId);
@@ -523,6 +626,7 @@ private function payWithCod(int $totalAmount): string
     // 6. XOÁ GIỎ HÀNG + ĐỊA CHỈ TẠM TRONG SESSION
     unset($_SESSION['cart']);
     unset($_SESSION['checkout_shipping']);
+    unset($_SESSION['checkout_coupon']);
 
     // 7. RENDER VIEW THÀNH CÔNG
     return $this->render('payment/cod_success', [

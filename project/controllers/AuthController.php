@@ -88,9 +88,13 @@ final class AuthController extends BaseController
                 } else {
                     $token = UserModel::createResetToken((int)$user['id']);
                     if ($token) {
-                        $this->sendResetEmail($user['email'], $user['name'], $token, false);
+                        $sent = $this->sendResetEmail($user['email'], $user['name'], $token, false);
+                        $message = $sent
+                            ? 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.'
+                            : 'Không gửi được email đặt lại mật khẩu, vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
+                    } else {
+                        $message = 'Không thể tạo liên kết đặt lại, thử lại sau.';
                     }
-                    $message = 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
                 }
             }
         }
@@ -142,7 +146,7 @@ final class AuthController extends BaseController
         ]);
     }
 
-    private function sendResetEmail(string $email, string $name, string $token, bool $isAdmin): void
+    private function sendResetEmail(string $email, string $name, string $token, bool $isAdmin): bool
     {
         $link = $isAdmin
             ? 'index.php?c=auth&a=reset&token=' . urlencode($token)
@@ -158,9 +162,6 @@ final class AuthController extends BaseController
         $mailer = new EmailService();
         $sent = $mailer->sendPlain($email, $name, $subject, $body);
 
-        // Nếu chưa cấu hình SMTP hoặc gửi lỗi, vẫn flash link để tự thao tác
-        if (!$sent) {
-            $_SESSION['flash_success'] = 'Link đặt lại mật khẩu (copy thủ công): ' . $link;
-        }
+        return $sent;
     }
 }

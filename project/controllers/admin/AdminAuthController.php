@@ -78,10 +78,15 @@ final class AdminAuthController extends BaseAdminController
                 if ($user && $user['role'] === 'admin' && (int)$user['is_active'] === 1) {
                     $token = UserModel::createResetToken((int)$user['id']);
                     if ($token) {
-                        $this->sendResetEmail($user['email'], $user['name'], $token);
+                        $sent = $this->sendResetEmail($user['email'], $user['name'], $token);
+                        $message = $sent
+                            ? 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.'
+                            : 'Không gửi được email đặt lại mật khẩu, vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
                     }
                 }
-                $message = 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+                if (!$message) {
+                    $message = 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+                }
             }
         }
 
@@ -127,7 +132,7 @@ final class AdminAuthController extends BaseAdminController
         ]);
     }
 
-    private function sendResetEmail(string $email, string $name, string $token): void
+    private function sendResetEmail(string $email, string $name, string $token): bool
     {
         $link = 'index.php?c=auth&a=reset&token=' . urlencode($token);
         $subject = '[Admin] Đặt lại mật khẩu';
@@ -137,8 +142,6 @@ final class AdminAuthController extends BaseAdminController
         require_once __DIR__ . '/../../services/EmailService.php';
         $mailer = new EmailService();
         $sent = $mailer->sendPlain($email, $name, $subject, $body);
-        if (!$sent) {
-            $_SESSION['flash_success'] = 'Link đặt lại mật khẩu (copy thủ công): ' . $link;
-        }
+        return $sent;
     }
 }
