@@ -428,4 +428,59 @@ public static function getAddressByIdAndUser(int $addressId, int $userId): ?arra
             'lastPage' => max(1, (int)ceil($total / $perPage)),
         ];
     }
+
+    // ===================================
+    // KHÔI PHỤC MẬT KHẨU
+    // ===================================
+
+    /**
+     * Tạo token khôi phục mật khẩu (hết hạn 60 phút).
+     */
+    public static function createResetToken(int $userId): ?string
+    {
+        try {
+            $token = bin2hex(random_bytes(32));
+            $sql = "INSERT INTO password_resets (user_id, token, expires_at)
+                    VALUES (:uid, :token, :exp)";
+            $st = self::db()->prepare($sql);
+            $st->execute([
+                ':uid'   => $userId,
+                ':token' => $token,
+                ':exp'   => date('Y-m-d H:i:s', time() + 3600), // 60 phút
+            ]);
+            return $token;
+        } catch (\Throwable $e) {
+            error_log("Error createResetToken: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Lấy token hợp lệ (chưa dùng, chưa hết hạn).
+     */
+    public static function findResetByToken(string $token): ?array
+    {
+        $sql = "
+            SELECT pr.*, u.id AS user_id, u.email, u.name, u.role, u.is_active
+            FROM password_resets pr
+            JOIN users u ON u.id = pr.user_id
+            WHERE pr.token = :token
+              AND pr.used_at IS NULL
+              AND pr.expires_at >= NOW()
+            LIMIT 1
+        ";
+        $st = self::db()->prepare($sql);
+        $st->execute([':token' => $token]);
+        $row = $st->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Đánh dấu token đã dùng.
+     */
+    public static function markResetUsed(string $token): void
+    {
+        $sql = "UPDATE password_resets SET used_at = NOW() WHERE token = :token";
+        self::db()->prepare($sql)->execute([':token' => $token]);
+    }
 }

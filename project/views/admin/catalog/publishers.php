@@ -200,6 +200,23 @@ $total    = $pagination['total'] ?? 0;
              placeholder="Tên NXB..." class="wd-input">
     </div>
 
+    <div class="filter-group">
+      <label>Trạng thái</label>
+      <select name="status" class="wd-input">
+        <option value="">Tất cả</option>
+        <option value="1" <?= $filters['status']==='1' ? 'selected' : ''; ?>>Hiển thị</option>
+        <option value="0" <?= $filters['status']==='0' ? 'selected' : ''; ?>>Ẩn</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Loại bản ghi</label>
+      <select name="deleted" class="wd-input">
+        <option value="0" <?= (int)$filters['deleted'] === 0 ? 'selected' : ''; ?>>Đang hoạt động</option>
+        <option value="1" <?= (int)$filters['deleted'] === 1 ? 'selected' : ''; ?>>Đã xóa (thùng rác)</option>
+      </select>
+    </div>
+
     <div class="filter-actions">
       <button type="submit" class="wd-btn-secondary">Lọc</button>
     </div>
@@ -232,6 +249,7 @@ $total    = $pagination['total'] ?? 0;
             <th>ID</th>
             <th>Tên NXB</th>
             <th>Slug</th>
+            <th>Trạng thái</th>
             <th style="width:120px;">Thao tác</th>
           </tr>
           </thead>
@@ -245,6 +263,7 @@ $total    = $pagination['total'] ?? 0;
               data-id="<?= $p['id']; ?>"
               data-name="<?= htmlspecialchars($p['name']); ?>"
               data-slug="<?= htmlspecialchars($p['slug']); ?>"
+              data-active="<?= (int)($p['is_active'] ?? 0); ?>"
               data-book-count="<?= (int)$bookCount; ?>"
               data-created-at="<?= htmlspecialchars($createdAt); ?>"
             >
@@ -252,16 +271,38 @@ $total    = $pagination['total'] ?? 0;
               <td><?= htmlspecialchars($p['name']); ?></td>
               <td><?= htmlspecialchars($p['slug']); ?></td>
               <td>
-                <button type="button"
-                        class="wd-icon-btn js-edit-publisher"
-                        title="Chỉnh sửa">
-                  ✏️
-                </button>
-                <button type="button"
-                        class="wd-icon-btn danger js-delete-publisher"
-                        title="Xóa">
-                  🗑
-                </button>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <span class="badge badge-danger">Đã xóa</span>
+                <?php else: ?>
+                  <?php if (!empty($p['is_active'])): ?>
+                    <span class="badge badge-success">Hiển thị</span>
+                  <?php else: ?>
+                    <span class="badge badge-muted">Ẩn</span>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <form method="post" action="index.php?c=publishers&a=restore" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
+                    <input type="hidden" name="id" value="<?= $p['id']; ?>">
+                    <button type="submit" class="wd-icon-btn" title="Khôi phục"
+                            onclick="return confirm('Khôi phục nhà xuất bản này?');">
+                      ⟳
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <button type="button"
+                          class="wd-icon-btn js-edit-publisher"
+                          title="Chỉnh sửa">
+                    ✏️
+                  </button>
+                  <button type="button"
+                          class="wd-icon-btn danger js-delete-publisher"
+                          title="Xóa">
+                    🗑
+                  </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -273,7 +314,7 @@ $total    = $pagination['total'] ?? 0;
         <div class="admin-pagination">
           <?php for ($pg = 1; $pg <= $lastPage; $pg++): ?>
             <a class="page-link <?= $pg === $page ? 'active' : ''; ?>"
-               href="index.php?c=publishers&a=index&page=<?= $pg; ?>&keyword=<?= urlencode($filters['keyword']); ?>">
+               href="index.php?c=publishers&a=index&page=<?= $pg; ?>&keyword=<?= urlencode($filters['keyword']); ?>&status=<?= urlencode($filters['status']); ?>&deleted=<?= (int)$filters['deleted']; ?>">
               <?= $pg; ?>
             </a>
           <?php endfor; ?>
@@ -302,6 +343,11 @@ $total    = $pagination['total'] ?? 0;
 
         <label class="wd-label">Slug (bỏ trống sẽ tự tạo)</label>
         <input type="text" name="slug" id="pubSlug" class="wd-input">
+
+        <label class="wd-label" style="margin-top:10px;">
+          <input type="checkbox" name="is_active" id="pubActive" value="1">
+          <span>Hiển thị</span>
+        </label>
 
         <div style="margin-top:16px;display:flex;gap:8px;">
           <button type="submit" class="wd-btn-primary">Lưu thay đổi</button>
@@ -340,6 +386,11 @@ $total    = $pagination['total'] ?? 0;
 
           <label class="wd-label">Slug (bỏ trống sẽ tự tạo)</label>
           <input type="text" name="slug" class="wd-input">
+
+          <label class="wd-label" style="margin-top:10px;">
+            <input type="checkbox" name="is_active" value="1" checked>
+            <span>Hiển thị</span>
+          </label>
 
           <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
             <button type="button" class="wd-btn-secondary" id="btnCancelCreatePublisher">
@@ -396,6 +447,7 @@ $total    = $pagination['total'] ?? 0;
   const idInput   = document.getElementById('pubId');
   const nameInput = document.getElementById('pubName');
   const slugInput = document.getElementById('pubSlug');
+  const activeInput = document.getElementById('pubActive');
 
   function openEditLayout() {
     gridEl.classList.remove('only-list');
@@ -418,6 +470,7 @@ $total    = $pagination['total'] ?? 0;
     idInput.value = '';
     nameInput.value = '';
     slugInput.value = '';
+    if (activeInput) activeInput.checked = true;
 
     document.querySelectorAll('#tblPublishers tr.is-active-row')
       .forEach(r => r.classList.remove('is-active-row'));
@@ -437,12 +490,14 @@ $total    = $pagination['total'] ?? 0;
       const id   = tr.dataset.id;
       const name = tr.dataset.name;
       const slug = tr.dataset.slug;
+      const active = tr.dataset.active === '1';
       const bookCount = parseInt(tr.dataset.bookCount || '0', 10);
       const createdAt = tr.dataset.createdAt || '';
 
       idInput.value   = id;
       nameInput.value = name;
       slugInput.value = slug;
+      if (activeInput) activeInput.checked = active;
 
       titleEl.textContent = 'Cập nhật NXB #' + id;
       let meta = 'NXB: ' + name;

@@ -3,11 +3,49 @@
 /** @var array $chartMonths */
 /** @var array $statusStats */
 /** @var string $range */
+/** @var array $topCategories */
+/** @var array $topBooks */
+/** @var array $worstBooks */
+/** @var array $recentOrders */
 
-$stats       = $stats ?? [];
-$chartMonths = $chartMonths ?? [];
-$statusStats = $statusStats ?? [];
-$range       = $range ?? 'last_12_months';
+$stats         = $stats ?? [];
+$chartMonths   = $chartMonths ?? [];
+$statusStats   = $statusStats ?? [];
+$topCategories = $topCategories ?? [];
+$topBooks      = $topBooks ?? [];
+$worstBooks    = $worstBooks ?? [];
+$recentOrders  = $recentOrders ?? [];
+$range         = $range ?? 'last_12_months';
+
+// Helpers (dùng lại ở bảng đơn gần đây)
+if (!function_exists('wd_status_badge')) {
+    function wd_status_badge(string $status): string {
+        switch ($status) {
+            case 'pending':    return '<span class="badge badge-muted">Chờ xử lý</span>';
+            case 'processing': return '<span class="badge badge-warning">Đang xử lý</span>';
+            case 'shipped':    return '<span class="badge badge-info">Đang giao</span>';
+            case 'delivered':  return '<span class="badge badge-success">Đã giao</span>';
+            case 'cancelled':  return '<span class="badge badge-danger">Đã hủy</span>';
+            default:           return '<span class="badge badge-muted">'.htmlspecialchars($status).'</span>';
+        }
+    }
+}
+
+if (!function_exists('wd_payment_badge')) {
+    function wd_payment_badge(string $status): string {
+        switch ($status) {
+            case 'paid':
+            case 'success':
+                return '<span class="badge badge-success">Đã thanh toán</span>';
+            case 'failed':
+                return '<span class="badge badge-danger">Thanh toán lỗi</span>';
+            case 'refunded':
+                return '<span class="badge badge-warning">Đã hoàn tiền</span>';
+            default:
+                return '<span class="badge badge-muted">Chưa thanh toán</span>';
+        }
+    }
+}
 
 // Data cho chart (PHP → JS)
 $labels = [];
@@ -108,6 +146,122 @@ $rangeText = [
     <h3 style="margin-top:0;font-size:15px;">Trạng thái đơn hàng</h3>
     <canvas id="chartStatus" height="140"></canvas>
   </div>
+</div>
+
+<div class="admin-chart-grid" style="margin-top:14px;">
+  <div class="admin-card">
+    <h3 style="margin-top:0;font-size:15px;">Top danh mục (theo số sách)</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tên danh mục</th>
+          <th>Số sách</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (empty($topCategories)): ?>
+          <tr><td colspan="3" style="text-align:center;color:#6b7280;">Chưa có dữ liệu</td></tr>
+        <?php else: ?>
+          <?php foreach ($topCategories as $idx => $c): ?>
+            <tr>
+              <td><?= $idx+1; ?></td>
+              <td><?= htmlspecialchars($c['name']); ?></td>
+              <td><?= (int)$c['book_count']; ?></td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="admin-card">
+    <h3 style="margin-top:0;font-size:15px;">Top sách (theo doanh thu)</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tên sách</th>
+          <th>SL</th>
+          <th>Doanh thu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (empty($topBooks)): ?>
+          <tr><td colspan="4" style="text-align:center;color:#6b7280;">Chưa có dữ liệu</td></tr>
+        <?php else: ?>
+          <?php foreach ($topBooks as $idx => $b): ?>
+            <tr>
+              <td><?= $idx+1; ?></td>
+              <td><?= htmlspecialchars($b['title']); ?></td>
+              <td><?= (int)$b['qty']; ?></td>
+              <td><?= number_format((float)$b['revenue'], 0, ',', '.'); ?>đ</td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="admin-card">
+    <h3 style="margin-top:0;font-size:15px;">Sách bán chậm</h3>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tên sách</th>
+          <th>SL</th>
+          <th>Doanh thu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (empty($worstBooks)): ?>
+          <tr><td colspan="4" style="text-align:center;color:#6b7280;">Chưa có dữ liệu</td></tr>
+        <?php else: ?>
+          <?php foreach ($worstBooks as $idx => $b): ?>
+            <tr>
+              <td><?= $idx+1; ?></td>
+              <td><?= htmlspecialchars($b['title']); ?></td>
+              <td><?= (int)$b['qty']; ?></td>
+              <td><?= number_format((float)$b['revenue'], 0, ',', '.'); ?>đ</td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="admin-card" style="margin-top:14px;">
+  <h3 style="margin-top:0;font-size:15px;">Đơn hàng gần đây</h3>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Khách</th>
+        <th>Trạng thái</th>
+        <th>Thanh toán</th>
+        <th>Tổng</th>
+        <th>Ngày tạo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php if (empty($recentOrders)): ?>
+        <tr><td colspan="6" style="text-align:center;color:#6b7280;">Chưa có đơn hàng</td></tr>
+      <?php else: ?>
+        <?php foreach ($recentOrders as $o): ?>
+          <tr>
+            <td>#<?= (int)$o['id']; ?></td>
+            <td><?= htmlspecialchars($o['user_name'] ?? $o['user_email'] ?? 'Khách'); ?></td>
+            <td><?= wd_status_badge($o['shipping_status'] ?? 'pending'); ?></td>
+            <td><?= wd_payment_badge($o['payment_status'] ?? 'pending'); ?></td>
+            <td><?= number_format((float)$o['total'], 0, ',', '.'); ?>đ</td>
+            <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($o['created_at']))); ?></td>
+          </tr>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </tbody>
+  </table>
 </div>
 
 <script>

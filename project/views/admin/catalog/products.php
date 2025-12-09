@@ -394,6 +394,14 @@ foreach ($publishers as $p) {
       </select>
     </div>
 
+    <div class="filter-group">
+      <label>Loại bản ghi</label>
+      <select name="deleted" class="wd-input">
+        <option value="0" <?= (int)$filters['deleted'] === 0 ? 'selected' : ''; ?>>Đang hoạt động</option>
+        <option value="1" <?= (int)$filters['deleted'] === 1 ? 'selected' : ''; ?>>Đã xóa (thùng rác)</option>
+      </select>
+    </div>
+
     <div class="filter-actions">
       <button type="submit" class="wd-btn-secondary">Lọc</button>
     </div>
@@ -467,23 +475,41 @@ foreach ($publishers as $p) {
                 <?= htmlspecialchars(mb_strimwidth($b['short_desc'], 0, 60, '...', 'UTF-8')); ?>
               </td>
               <td>
-                <?php if ($b['is_active']): ?>
-                  <span class="badge badge-success">Đang bán</span>
+                <?php if ((int)$filters['deleted'] === 1): ?>
+                  <span class="badge badge-danger">Đã xóa</span>
                 <?php else: ?>
-                  <span class="badge badge-muted">Ẩn</span>
+                  <?php if ($b['is_active']): ?>
+                    <span class="badge badge-success">Đang bán</span>
+                  <?php else: ?>
+                    <span class="badge badge-muted">Ẩn</span>
+                  <?php endif; ?>
                 <?php endif; ?>
               </td>
               <td>
-                <button type="button"
-                        class="wd-icon-btn js-edit-product"
-                        title="Chỉnh sửa">
-                  ✏️
-                </button>
-                <button type="button"
-                        class="wd-icon-btn danger js-delete-product"
-                        title="Xóa sách này">
-                  🗑
-                </button>
+                <?php if ((int)$filters['deleted'] === 1): ?>
+                  <form method="post" action="index.php?c=products&a=restore" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
+                    <input type="hidden" name="id" value="<?= $b['id']; ?>">
+                    <button type="submit" class="wd-icon-btn" title="Khôi phục"
+                            onclick="return confirm('Khôi phục sách này?');">
+                      ⟳
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <a href="index.php?c=products&a=images&id=<?= $b['id']; ?>" class="wd-icon-btn" title="Ảnh sách">
+                    🖼
+                  </a>
+                  <button type="button"
+                          class="wd-icon-btn js-edit-product"
+                          title="Chỉnh sửa">
+                    ✏️
+                  </button>
+                  <button type="button"
+                          class="wd-icon-btn danger js-delete-product"
+                          title="Xóa sách này">
+                    🗑
+                  </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -495,7 +521,7 @@ foreach ($publishers as $p) {
         <div class="admin-pagination">
           <?php for ($p = 1; $p <= $lastPage; $p++): ?>
             <a class="page-link <?= $p === $page ? 'active' : ''; ?>"
-               href="index.php?c=products&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>&category_id=<?= (int)$filters['category_id']; ?>&status=<?= urlencode($filters['status']); ?>">
+               href="index.php?c=products&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>&category_id=<?= (int)$filters['category_id']; ?>&status=<?= urlencode($filters['status']); ?>&deleted=<?= (int)$filters['deleted']; ?>">
               <?= $p; ?>
             </a>
           <?php endfor; ?>

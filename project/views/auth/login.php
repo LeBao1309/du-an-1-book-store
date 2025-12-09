@@ -31,6 +31,9 @@
         </form>
 
         <div style="text-align:center; margin-top:20px; font-size:14px; color:#64748b">
+            <div style="margin-bottom:8px;">
+                <a href="index.php?controller=auth&action=forgot" style="color:#0ea5a5; font-weight:600">Quên mật khẩu?</a>
+            </div>
             Chưa có tài khoản? <a href="index.php?controller=auth&action=register" style="color:#0ea5a5; font-weight:600">Đăng ký ngay</a>
         </div>
     </section>

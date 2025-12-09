@@ -145,6 +145,7 @@ final class AdminOrderModel extends BaseModel
         }
 
         $from = $cur['shipping_status'];
+        $currentPaymentStatus = $cur['payment_status'] ?? 'pending';
 
         if ($from === $toStatus) {
             return true; // không có gì để làm
@@ -168,6 +169,7 @@ final class AdminOrderModel extends BaseModel
         // Nếu huỷ → cần lý do (tối thiểu chuỗi non-empty)
         $cancelReason = null;
         $cancelUserId = null;
+        $newPaymentStatus = $currentPaymentStatus;
 
         if ($toStatus === 'cancelled') {
             $cancelReason = trim((string) $reason);
@@ -175,21 +177,63 @@ final class AdminOrderModel extends BaseModel
                 $cancelReason = 'Đơn bị hủy bởi quản trị viên';
             }
             $cancelUserId = $adminId;
+            // Nếu đã thanh toán thì chuyển sang refunded, nếu chưa thì để pending
+            $newPaymentStatus = ($currentPaymentStatus === 'paid') ? 'refunded' : 'pending';
+        }
+
+        if ($toStatus === 'shipped' && $currentPaymentStatus !== 'paid') {
+            // Khi giao hàng xong mặc định coi như đã thu tiền
+            $newPaymentStatus = 'paid';
         }
 
         $sql = "
             UPDATE orders
             SET shipping_status       = :st,
                 cancel_reason         = :reason,
-                cancelled_by_user_id  = :uid
+                cancelled_by_user_id  = :uid,
+                payment_status        = :pay
             WHERE id = :id
         ";
         $st = $db->prepare($sql);
-        return $st->execute([
+        $ok = $st->execute([
             ':st'    => $toStatus,
             ':reason'=> $cancelReason,
             ':uid'   => $cancelUserId,
+            ':pay'   => $newPaymentStatus,
             ':id'    => $id,
         ]);
+
+        if (!$ok) {
+            return false;
+        }
+
+        // Đồng bộ bảng payment nếu có bản ghi
+        $payment = $db->prepare("SELECT id FROM payment WHERE order_id = :id LIMIT 1");
+        $payment->execute([':id' => $id]);
+        $hasPayment = (bool)$payment->fetchColumn();
+
+        if ($hasPayment) {
+            $gatewayStatus = match ($newPaymentStatus) {
+                'paid'     => 'success',
+                'refunded' => 'refunded',
+                'failed'   => 'failed',
+                default    => 'pending',
+            };
+
+            $paidAt = ($gatewayStatus === 'success') ? date('Y-m-d H:i:s') : null;
+
+            $db->prepare("
+                UPDATE payment
+                SET status = :pstat,
+                    paid_at = :paid_at
+                WHERE order_id = :oid
+            ")->execute([
+                ':pstat'   => $gatewayStatus,
+                ':paid_at' => $paidAt,
+                ':oid'     => $id,
+            ]);
+        }
+
+        return true;
     }
 }

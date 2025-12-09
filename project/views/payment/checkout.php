@@ -218,14 +218,39 @@
 
         </div>
 
-        <div class="mt-3 text-end">
-          <p class="mb-1">
-            <strong>Tổng số lượng:</strong> <?= (int)($totalQuantity ?? 0) ?> cuốn
-          </p>
+        <?php
+          $discount = (float)($discountAmount ?? 0);
+          $finalTotal = max(0, (float)($totalAmount ?? 0) - $discount);
+        ?>
+
+        <div class="mt-3">
+          <p class="mb-1"><strong>Tổng số lượng:</strong> <?= (int)($totalQuantity ?? 0) ?> cuốn</p>
+          <p class="mb-1"><strong>Tạm tính:</strong> <?= number_format((int)($totalAmount ?? 0)) ?>₫</p>
+
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <?php if (!empty($appliedCoupon)): ?>
+              <span class="badge bg-success">Đã áp dụng mã: <?= htmlspecialchars($appliedCoupon['code']); ?></span>
+              <form action="index.php?controller=payment&action=removeCoupon" method="post" class="d-inline">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+                <button type="submit" class="btn btn-link btn-sm text-danger p-0">Bỏ mã</button>
+              </form>
+            <?php else: ?>
+              <form action="index.php?controller=payment&action=applyCoupon" method="post" class="d-flex gap-2 flex-wrap">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+                <input type="text" name="coupon_code" class="form-control form-control-sm" placeholder="Nhập mã giảm giá" style="max-width:200px;">
+                <button type="submit" class="btn btn-primary btn-sm">Áp dụng</button>
+              </form>
+            <?php endif; ?>
+          </div>
+
+          <?php if ($discount > 0): ?>
+            <p class="mb-1 text-success"><strong>Giảm giá:</strong> -<?= number_format((int)$discount) ?>₫</p>
+          <?php endif; ?>
+
           <p class="fs-5 mb-0">
-            <strong>Tổng tiền:</strong>
+            <strong>Tổng thanh toán:</strong>
             <span class="text-danger fw-bold">
-              <?= number_format((int)($totalAmount ?? 0)) ?>₫
+              <?= number_format((int)$finalTotal) ?>₫
             </span>
           </p>
         </div>

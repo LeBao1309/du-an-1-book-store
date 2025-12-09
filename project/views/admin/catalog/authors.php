@@ -200,6 +200,23 @@ $total    = $pagination['total'] ?? 0;
              placeholder="Tên tác giả..." class="wd-input">
     </div>
 
+    <div class="filter-group">
+      <label>Trạng thái</label>
+      <select name="status" class="wd-input">
+        <option value="">Tất cả</option>
+        <option value="1" <?= $filters['status']==='1' ? 'selected' : ''; ?>>Hiển thị</option>
+        <option value="0" <?= $filters['status']==='0' ? 'selected' : ''; ?>>Ẩn</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Loại bản ghi</label>
+      <select name="deleted" class="wd-input">
+        <option value="0" <?= (int)$filters['deleted'] === 0 ? 'selected' : ''; ?>>Đang hoạt động</option>
+        <option value="1" <?= (int)$filters['deleted'] === 1 ? 'selected' : ''; ?>>Đã xóa (thùng rác)</option>
+      </select>
+    </div>
+
     <div class="filter-actions">
       <button type="submit" class="wd-btn-secondary">Lọc</button>
     </div>
@@ -232,6 +249,7 @@ $total    = $pagination['total'] ?? 0;
             <th>ID</th>
             <th>Tên tác giả</th>
             <th>Slug</th>
+            <th>Trạng thái</th>
             <th style="width:120px;">Thao tác</th>
           </tr>
           </thead>
@@ -245,6 +263,7 @@ $total    = $pagination['total'] ?? 0;
               data-id="<?= $a['id']; ?>"
               data-name="<?= htmlspecialchars($a['name']); ?>"
               data-slug="<?= htmlspecialchars($a['slug']); ?>"
+              data-active="<?= (int)($a['is_active'] ?? 0); ?>"
               data-book-count="<?= (int)$bookCount; ?>"
               data-created-at="<?= htmlspecialchars($createdAt); ?>"
             >
@@ -252,16 +271,38 @@ $total    = $pagination['total'] ?? 0;
               <td><?= htmlspecialchars($a['name']); ?></td>
               <td><?= htmlspecialchars($a['slug']); ?></td>
               <td>
-                <button type="button"
-                        class="wd-icon-btn js-edit-author"
-                        title="Chỉnh sửa">
-                  ✏️
-                </button>
-                <button type="button"
-                        class="wd-icon-btn danger js-delete-author"
-                        title="Xóa">
-                  🗑
-                </button>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <span class="badge badge-danger">Đã xóa</span>
+                <?php else: ?>
+                  <?php if (!empty($a['is_active'])): ?>
+                    <span class="badge badge-success">Hiển thị</span>
+                  <?php else: ?>
+                    <span class="badge badge-muted">Ẩn</span>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <form method="post" action="index.php?c=authors&a=restore" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
+                    <input type="hidden" name="id" value="<?= $a['id']; ?>">
+                    <button type="submit" class="wd-icon-btn" title="Khôi phục"
+                            onclick="return confirm('Khôi phục tác giả này?');">
+                      ⟳
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <button type="button"
+                          class="wd-icon-btn js-edit-author"
+                          title="Chỉnh sửa">
+                    ✏️
+                  </button>
+                  <button type="button"
+                          class="wd-icon-btn danger js-delete-author"
+                          title="Xóa">
+                    🗑
+                  </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -273,7 +314,7 @@ $total    = $pagination['total'] ?? 0;
         <div class="admin-pagination">
           <?php for ($p = 1; $p <= $lastPage; $p++): ?>
             <a class="page-link <?= $p === $page ? 'active' : ''; ?>"
-               href="index.php?c=authors&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>">
+               href="index.php?c=authors&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>&status=<?= urlencode($filters['status']); ?>&deleted=<?= (int)$filters['deleted']; ?>">
               <?= $p; ?>
             </a>
           <?php endfor; ?>
@@ -302,6 +343,11 @@ $total    = $pagination['total'] ?? 0;
 
         <label class="wd-label">Slug (bỏ trống sẽ tự tạo)</label>
         <input type="text" name="slug" id="authorSlug" class="wd-input">
+
+        <label class="wd-label" style="margin-top:10px;">
+          <input type="checkbox" name="is_active" id="authorActive" value="1">
+          <span>Hiển thị</span>
+        </label>
 
         <div style="margin-top:16px;display:flex;gap:8px;">
           <button type="submit" class="wd-btn-primary">Lưu thay đổi</button>
@@ -340,6 +386,11 @@ $total    = $pagination['total'] ?? 0;
 
           <label class="wd-label">Slug (bỏ trống sẽ tự tạo)</label>
           <input type="text" name="slug" class="wd-input">
+
+          <label class="wd-label" style="margin-top:10px;">
+            <input type="checkbox" name="is_active" value="1" checked>
+            <span>Hiển thị</span>
+          </label>
 
           <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
             <button type="button" class="wd-btn-secondary" id="btnCancelCreateAuthor">
@@ -418,6 +469,7 @@ $total    = $pagination['total'] ?? 0;
     idInput.value = '';
     nameInput.value = '';
     slugInput.value = '';
+    document.getElementById('authorActive').checked = true;
 
     document.querySelectorAll('#tblAuthors tr.is-active-row')
       .forEach(r => r.classList.remove('is-active-row'));
@@ -437,12 +489,14 @@ $total    = $pagination['total'] ?? 0;
       const id   = tr.dataset.id;
       const name = tr.dataset.name;
       const slug = tr.dataset.slug;
+      const active = tr.dataset.active === '1';
       const bookCount = parseInt(tr.dataset.bookCount || '0', 10);
       const createdAt = tr.dataset.createdAt || '';
 
       idInput.value   = id;
       nameInput.value = name;
       slugInput.value = slug;
+      document.getElementById('authorActive').checked = active;
 
       titleEl.textContent = 'Cập nhật tác giả #' + id;
       let meta = 'Tác giả: ' + name;

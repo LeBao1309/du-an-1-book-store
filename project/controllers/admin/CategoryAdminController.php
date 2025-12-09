@@ -1,96 +1,177 @@
 <?php
-// project/controllers/admin/CategoryAdminController.php
-require_once __DIR__ . '/AdminBaseController.php';
+require_once __DIR__ . '/BaseAdminController.php';
 require_once __DIR__ . '/../../models/admin/AdminCategoryModel.php';
 
-final class CategoryAdminController extends AdminBaseController
+final class CategoryAdminController extends BaseAdminController
 {
-    public function index(): string
+
+    public function index()
     {
-        $page = max(1, (int)($_GET['page'] ?? 1));
         $filters = [
-            'keyword' => trim($_GET['keyword'] ?? ''),
+            'keyword' => $_GET['keyword'] ?? '',
             'status'  => $_GET['status'] ?? '',
+            'deleted' => $_GET['deleted'] ?? 0, // 0=active, 1=deleted
         ];
 
-        $pagination    = AdminCategoryModel::paginate($filters, $page, 10);
-        $csrf          = $this->csrfToken();
-        $allCategories = AdminCategoryModel::all();
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
+        $data = AdminCategoryModel::paginate($filters, $page, 10);
 
         return $this->renderAdmin('admin/catalog/categories', [
-            'pagination'    => $pagination,
-            'filters'       => $filters,
-            'csrf'          => $csrf,
-            'allCategories' => $allCategories,
+            'pagination'=> $data,
+            'items'     => $data['items'],
+            'total'     => $data['total'],
+            'page'      => $page,
+            'last_page' => $data['last_page'],
+            'filters'   => $filters,
+            'allCategories' => AdminCategoryModel::getLevel1(),
+            'csrf'      => $this->csrfToken(),
         ]);
     }
 
-    public function store(): void
-    {
-        $this->checkCsrf();
 
-        $name   = trim($_POST['name'] ?? '');
-        $slug   = trim($_POST['slug'] ?? '');
-        $parent = (int)($_POST['parent_id'] ?? 0) ?: null;
+    public function create()
+    {
+        $parents = AdminCategoryModel::getLevel1();
+
+        return $this->renderAdmin('admin/catalog/categories/create', [
+            'parents' => $parents
+        ]);
+    }
+
+    public function store()
+    {
+        $name = trim($_POST['name']);
+        $parentId = $_POST['parent_id'] !== '' ? (int)$_POST['parent_id'] : null;
         $active = isset($_POST['is_active']);
 
         if ($name === '') {
-            $_SESSION['flash_error'] = 'Tên danh mục không được để trống';
-        } else {
-            if ($slug === '') {
-                $slug = self::slugify($name);
+            $this->flashError("Tên danh mục không được để trống.");
+            return $this->redirect("index.php?c=categories&a=create");
+        }
+
+        if ($parentId !== null) {
+            $parent = AdminCategoryModel::find($parentId);
+            if (!$parent || $parent['parent_id'] !== null) {
+                $this->flashError("Danh mục cha phải là cấp 1.");
+                return $this->redirect("index.php?c=categories&a=create");
             }
-            AdminCategoryModel::create($name, $slug, $parent, $active);
-            $_SESSION['flash_success'] = 'Thêm danh mục thành công';
         }
 
-        header('Location: index.php?c=catalog&a=index');
+       
+        $slug = $this->slugify($name);
+        $original = $slug;
+        $i = 1;
+        while (AdminCategoryModel::isSlugExist($slug)) {
+            $slug = $original . '-' . $i++;
+        }
+
+        AdminCategoryModel::create($name, $slug, $parentId, $active);
+
+        $this->flashSuccess("Tạo danh mục thành công.");
+        return $this->redirect("index.php?c=categories&a=index");
     }
 
-    public function update(): void
+
+    public function edit()
     {
-        $this->checkCsrf();
+        $id = (int)$_GET['id'];
+        $category = AdminCategoryModel::find($id);
 
-        $id     = (int)($_POST['id'] ?? 0);
-        $name   = trim($_POST['name'] ?? '');
-        $slug   = trim($_POST['slug'] ?? '');
-        $parent = (int)($_POST['parent_id'] ?? 0) ?: null;
-        $active = isset($_POST['is_active']);
-
-        if ($id <= 0 || $name === '') {
-            $_SESSION['flash_error'] = 'Dữ liệu không hợp lệ';
-            header('Location: index.php?c=catalog&a=index');
-            return;
+        if (!$category) {
+            $this->flashError("Danh mục không tồn tại.");
+            return $this->redirect("index.php?c=categories&a=index");
         }
 
-        if ($slug === '') {
-            $slug = self::slugify($name);
-        }
-
-        AdminCategoryModel::update($id, $name, $slug, $parent, $active);
-        $_SESSION['flash_success'] = 'Cập nhật danh mục thành công';
-
-        header('Location: index.php?c=catalog&a=index');
+        return $this->renderAdmin('admin/catalog/categories/edit', [
+            'category' => $category,
+            'parents'  => AdminCategoryModel::getLevel1(),
+        ]);
     }
 
-    public function delete(): void
+    public function update()
+    {
+        $id = (int)$_POST['id'];
+        $category = AdminCategoryModel::find($id);
+
+        if (!$category) {
+            $this->flashError("Danh mục không tồn tại.");
+            return $this->redirect("index.php?c=categories&a=index");
+        }
+
+        $name = trim($_POST['name']);
+        $parentId = $_POST['parent_id'] !== '' ? (int)$_POST['parent_id'] : null;
+
+        if ($parentId === $id) {
+            $this->flashError("Không thể chọn chính danh mục làm cha.");
+            return $this->redirect("index.php?c=categories&a=edit&id={$id}");
+        }
+
+        if ($parentId !== null) {
+            $parent = AdminCategoryModel::find($parentId);
+            if (!$parent || $parent['parent_id'] !== null) {
+                $this->flashError("Danh mục cha phải là cấp 1.");
+                return $this->redirect("index.php?c=categories&a=edit&id={$id}");
+            }
+        }
+
+        $slug = $this->slugify($name);
+        $original = $slug;
+        $i = 1;
+        while (AdminCategoryModel::isSlugExist($slug, $id)) {
+            $slug = $original . '-' . $i++;
+        }
+
+        AdminCategoryModel::update(
+            $id, $name, $slug, $parentId,
+            isset($_POST['is_active'])
+        );
+
+        $this->flashSuccess("Cập nhật thành công.");
+        return $this->redirect("index.php?c=categories&a=edit&id={$id}");
+    }
+
+    public function delete()
     {
         $this->checkCsrf();
-
         $id = (int)($_POST['id'] ?? 0);
-        if ($id > 0) {
-            AdminCategoryModel::delete($id);
-            $_SESSION['flash_success'] = 'Xóa danh mục thành công';
+
+        $category = AdminCategoryModel::find($id);
+        if (!$category) {
+            $this->flashError("Danh mục không tồn tại.");
+            return $this->redirect("index.php?c=categories&a=index");
         }
 
-        header('Location: index.php?c=catalog&a=index');
+        if (AdminCategoryModel::hasChildren($id)) {
+            $this->flashError("Không thể xóa danh mục cha khi còn danh mục con.");
+            return $this->redirect("index.php?c=categories&a=index");
+        }
+
+        if (AdminCategoryModel::hasBooks($id)) {
+            $this->flashError("Không thể xóa khi còn sách thuộc danh mục này.");
+            return $this->redirect("index.php?c=categories&a=index");
+        }
+
+        AdminCategoryModel::softDelete($id);
+
+        $this->flashSuccess("Đã xóa danh mục (Soft Delete).");
+        return $this->redirect("index.php?c=categories&a=index");
     }
 
-    private static function slugify(string $str): string
+    public function restore()
     {
-        $str = mb_strtolower($str, 'UTF-8');
-        $str = preg_replace('/[^\p{L}\p{N}]+/u', '-', $str);
-        $str = trim($str, '-');
-        return $str ?: 'danh-muc';
+        $this->checkCsrf();
+        $id = (int)($_POST['id'] ?? 0);
+
+        $category = AdminCategoryModel::findDeleted($id);
+        if (!$category) {
+            $this->flashError("Danh mục không tồn tại hoặc không bị xóa.");
+            return $this->redirect("index.php?c=categories&a=index&deleted=1");
+        }
+
+        AdminCategoryModel::restore($id);
+
+        $this->flashSuccess("Khôi phục danh mục thành công.");
+        return $this->redirect("index.php?c=categories&a=index");
     }
 }

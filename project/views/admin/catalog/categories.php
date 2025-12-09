@@ -211,6 +211,14 @@ $total     = $pagination['total'] ?? 0;
       </select>
     </div>
 
+    <div class="filter-group">
+      <label>Loại bản ghi</label>
+      <select name="deleted" class="wd-input">
+        <option value="0" <?= (int)$filters['deleted'] === 0 ? 'selected' : ''; ?>>Đang hoạt động</option>
+        <option value="1" <?= (int)$filters['deleted'] === 1 ? 'selected' : ''; ?>>Đã xóa (thùng rác)</option>
+      </select>
+    </div>
+
     <div class="filter-actions">
       <button type="submit" class="wd-btn-secondary">Lọc</button>
     </div>
@@ -272,23 +280,38 @@ $total     = $pagination['total'] ?? 0;
               <td><?= htmlspecialchars($cat['slug']); ?></td>
               <td><?= htmlspecialchars($parentName); ?></td>
               <td>
-                <?php if ($cat['is_active']): ?>
-                  <span class="badge badge-success">Hoạt động</span>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <span class="badge badge-danger">Đã xóa</span>
                 <?php else: ?>
-                  <span class="badge badge-muted">Ẩn</span>
+                  <?php if ($cat['is_active']): ?>
+                    <span class="badge badge-success">Hoạt động</span>
+                  <?php else: ?>
+                    <span class="badge badge-muted">Ẩn</span>
+                  <?php endif; ?>
                 <?php endif; ?>
               </td>
               <td>
-                <button type="button"
-                        class="wd-icon-btn js-edit-category"
-                        title="Chỉnh sửa">
-                  ✏️
-                </button>
-                <button type="button"
-                        class="wd-icon-btn danger js-disable-category"
-                        title="Vô hiệu hóa">
-                  🗑
-                </button>
+                <?php if ((int)($filters['deleted'] ?? 0) === 1): ?>
+                  <form method="post" action="index.php?c=categories&a=restore" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
+                    <input type="hidden" name="id" value="<?= $cat['id']; ?>">
+                    <button type="submit" class="wd-icon-btn" title="Khôi phục"
+                            onclick="return confirm('Khôi phục danh mục này?');">
+                      ⟳
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <button type="button"
+                          class="wd-icon-btn js-edit-category"
+                          title="Chỉnh sửa">
+                    ✏️
+                  </button>
+                  <button type="button"
+                          class="wd-icon-btn danger js-disable-category"
+                          title="Vô hiệu hóa">
+                    🗑
+                  </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -300,7 +323,7 @@ $total     = $pagination['total'] ?? 0;
         <div class="admin-pagination">
           <?php for ($p = 1; $p <= $lastPage; $p++): ?>
             <a class="page-link <?= $p === $page ? 'active' : ''; ?>"
-               href="index.php?c=catalog&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>&status=<?= urlencode($filters['status']); ?>">
+               href="index.php?c=catalog&a=index&page=<?= $p; ?>&keyword=<?= urlencode($filters['keyword']); ?>&status=<?= urlencode($filters['status']); ?>&deleted=<?= (int)$filters['deleted']; ?>">
               <?= $p; ?>
             </a>
           <?php endfor; ?>
@@ -419,7 +442,7 @@ $total     = $pagination['total'] ?? 0;
         <p style="font-size:14px;margin-bottom:12px;" id="disableCategoryText">
           Bạn có chắc chắn muốn vô hiệu hóa danh mục này?
         </p>
-        <form method="post" action="index.php?c=catalog&a=disable">
+        <form method="post" action="index.php?c=categories&a=delete">
           <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
           <input type="hidden" name="id" id="disableCategoryId">
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">

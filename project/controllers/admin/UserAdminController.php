@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/AdminBaseController.php';
+require_once __DIR__ . '/BaseAdminController.php';
 require_once __DIR__ . '/../../models/UserModel.php';
 
-final class UserAdminController extends AdminBaseController
+final class UserAdminController extends BaseAdminController
 {
     public function index(): string
     {
