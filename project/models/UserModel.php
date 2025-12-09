@@ -271,6 +271,26 @@ final class UserModel extends BaseModel
         }
     }
 
+    // Thêm cho checkout
+public static function getAddressByIdAndUser(int $addressId, int $userId): ?array
+{
+    $pdo = self::db();
+    $stmt = $pdo->prepare('
+        SELECT id, full_address, shipping_phone, is_default
+        FROM user_address              -- ✅ ĐÚNG BẢNG
+        WHERE id = :id AND user_id = :user_id
+        LIMIT 1
+    ');
+    $stmt->execute([
+        ':id'      => $addressId,
+        ':user_id' => $userId,
+    ]);
+
+    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+    return $row ?: null;
+}
+
+
     // ===================================
     // PHƯƠNG THỨC ADMIN QUẢN LÝ USER
     // ===================================
