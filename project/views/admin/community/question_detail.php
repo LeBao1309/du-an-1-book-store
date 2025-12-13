@@ -3,59 +3,69 @@
 /** @var array $answers */
 /** @var string $csrf */
 ?>
-<div class="admin-section-header">
-  <div>
-    <h2 class="admin-section-title">Chi tiết Q&A #<?= (int)$question['id']; ?></h2>
-    <p class="admin-section-subtitle">
-      Sách: <?= htmlspecialchars($question['book_title']); ?> • Khách: <?= htmlspecialchars($question['user_name']); ?>
-    </p>
-  </div>
-  <a href="index.php?c=qa&a=index" class="wd-btn-secondary">← Quay lại</a>
-</div>
+<style>
+  .qa-detail .badge {
+    padding:3px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+  }
+  .qa-detail .badge-warning { background:#fef3c7; color:#92400e; }
+  .qa-detail .badge-success { background:#d1fae5; color:#065f46; }
+</style>
 
-<div class="admin-grid-2">
-  <div class="admin-card">
-    <div class="admin-card-header">
-      <span>Câu hỏi</span>
+<div class="qa-detail">
+  <div class="admin-section-header">
+    <div>
+      <h2 class="admin-section-title">Chi tiết Q&A #<?= (int)$question['id']; ?></h2>
+      <p class="admin-section-subtitle">
+        Sách: <?= htmlspecialchars($question['book_title']); ?> • Khách: <?= htmlspecialchars($question['user_name']); ?>
+      </p>
     </div>
-    <div class="admin-card-body">
-      <p><strong>Nội dung:</strong></p>
-      <div style="padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;">
-        <?= nl2br(htmlspecialchars($question['question'])); ?>
+    <a href="index.php?c=qa&a=index" class="wd-btn-secondary">← Quay lại</a>
+  </div>
+
+  <div class="admin-grid-2">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <span>Câu hỏi</span>
       </div>
-      <p style="margin-top:10px;color:#6b7280;">Tạo lúc: <?= htmlspecialchars($question['created_at']); ?></p>
-      <?php if ((int)$question['is_answered'] === 1): ?>
-        <span class="badge badge-success">Đã trả lời</span>
-      <?php else: ?>
-        <span class="badge badge-warning">Chưa trả lời</span>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="admin-card">
-    <div class="admin-card-header">
-      <span>Trả lời từ shop</span>
-    </div>
-    <div class="admin-card-body">
-      <form method="post" action="index.php?c=qa&a=answer">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
-        <input type="hidden" name="question_id" value="<?= (int)$question['id']; ?>">
-        <label class="wd-label">Nội dung trả lời</label>
-        <textarea name="content" class="wd-input" rows="4" required></textarea>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
-          <button type="submit" class="wd-btn-primary">Gửi trả lời</button>
+      <div class="admin-card-body">
+        <p><strong>Nội dung:</strong></p>
+        <div style="padding:12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+          <?= nl2br(htmlspecialchars($question['question'])); ?>
         </div>
-      </form>
+        <p style="margin-top:10px;color:#6b7280;">Tạo lúc: <?= htmlspecialchars($question['created_at']); ?></p>
+        <?= (int)$question['is_answered'] === 1
+            ? '<span class="badge badge-success">Đã trả lời</span>'
+            : '<span class="badge badge-warning">Chưa trả lời</span>'; ?>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <span>Trả lời từ shop</span>
+      </div>
+      <div class="admin-card-body">
+        <form method="post" action="index.php?c=qa&a=answer">
+          <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
+          <input type="hidden" name="question_id" value="<?= (int)$question['id']; ?>">
+          <label class="wd-label">Nội dung trả lời</label>
+          <textarea name="content" class="wd-input" rows="4" required></textarea>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+            <button type="submit" class="wd-btn-primary">Gửi trả lời</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="admin-card" style="margin-top:16px;">
-  <div class="admin-card-header">
-    <span>Danh sách trả lời (<?= count($answers); ?>)</span>
-  </div>
-  <div class="admin-table-wrapper">
-    <table class="admin-table">
+  <div class="admin-card" style="margin-top:16px;">
+    <div class="admin-card-header">
+      <span>Danh sách trả lời (<?= count($answers); ?>)</span>
+    </div>
+    <div class="admin-table-wrapper">
+      <table class="admin-table">
       <thead>
       <tr>
         <th>ID</th>
@@ -80,15 +90,16 @@
               <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf); ?>">
               <input type="hidden" name="id" value="<?= (int)$a['id']; ?>">
               <input type="hidden" name="question_id" value="<?= (int)$question['id']; ?>">
-              <button type="submit" class="wd-btn-danger" style="padding:6px 10px;">Xóa</button>
+              <button type="submit" class="wd-icon-btn danger" title="Xóa trả lời">🗑</button>
             </form>
           </td>
         </tr>
       <?php endforeach; ?>
-      <?php if (empty($answers)): ?>
-        <tr><td colspan="6" style="text-align:center;">Chưa có trả lời.</td></tr>
-      <?php endif; ?>
+        <?php if (empty($answers)): ?>
+          <tr><td colspan="6" style="text-align:center;">Chưa có trả lời.</td></tr>
+        <?php endif; ?>
       </tbody>
     </table>
+    </div>
   </div>
 </div>

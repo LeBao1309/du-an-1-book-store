@@ -23,6 +23,7 @@ final class BookVariantAdminController extends BaseAdminController {
             'page'      => $page,
             'last_page' => $data['last_page'],
             'books'     => AdminBookModel::allActive(),
+            'csrf'      => $this->csrfToken(),
         ]);
     }
 
@@ -30,6 +31,7 @@ final class BookVariantAdminController extends BaseAdminController {
     {
         return $this->renderAdmin('admin/book_variants/create', [
             'books' => AdminBookModel::allActive(),
+            'csrf'  => $this->csrfToken(),
         ]);
     }
 
@@ -94,6 +96,7 @@ final class BookVariantAdminController extends BaseAdminController {
         return $this->renderAdmin('admin/book_variants/edit', [
             'variant' => $variant,
             'books'   => AdminBookModel::allActive(),
+            'csrf'    => $this->csrfToken(),
         ]);
     }
 

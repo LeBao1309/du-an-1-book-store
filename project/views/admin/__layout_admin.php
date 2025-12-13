@@ -38,6 +38,9 @@ $ASSET = $ASSET ?? 'public';
       <a href="index.php?c=products&a=index" class="menu-item">
         <span class="icon">📘</span> <span>Sách</span>
       </a>
+      <a href="index.php?c=book_variants&a=index" class="menu-item">
+        <span class="icon">🧩</span> <span>Biến thể sách</span>
+      </a>
       <a href="index.php?c=authors&a=index" class="menu-item">
         <span class="icon">✍️</span> <span>Tác giả</span>
       </a>
