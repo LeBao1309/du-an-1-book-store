@@ -12,7 +12,7 @@ class EmailService
     private string $username = '';
     private string $password = '';
     private string $fromEmail = '';
-    private string $fromName = 'Book Store';
+    private string $fromName = 'Wise Decision bookstore';
 
     public function __construct(array $override = [])
     {
@@ -35,9 +35,6 @@ class EmailService
         $this->fromName  = $config['from_name']  ?? $this->fromName;
     }
 
-    /**
-     * Gửi email text đơn giản (dùng cho reset password).
-     */
     public function sendPlain(string $toEmail, string $toName, string $subject, string $body): bool
     {
         if (empty($this->username) || empty($this->password)) {
@@ -53,7 +50,6 @@ class EmailService
         $headers[] = "Content-Type: text/plain; charset=UTF-8";
         $headers[] = "Content-Transfer-Encoding: 8bit";
 
-        // Ưu tiên PHPMailer nếu đã cài bằng Composer (khuyến nghị)
         if ($this->canUsePHPMailer()) {
             $sent = $this->sendViaPHPMailer($toEmail, $toName, $subject, nl2br($body), false);
             if (!$sent) {
@@ -65,17 +61,17 @@ class EmailService
         return $this->sendViaSMTP($toEmail, $subject, $body, $headers);
     }
 
-    /**
-     * Gửi email liên hệ (giữ lại để tương thích).
-     */
+
     public function sendContactEmail($toEmail, $fromName, $fromEmail, $subject, $messageBody, $phone = '')
     {
-        if (empty($this->password)) {
+        if (empty($this->username) || empty($this->password)) {
             error_log("EmailService: App Password chưa được cấu hình.");
+            $this->saveLocalCopy($toEmail, $subject, $messageBody);
             return false;
         }
 
         $htmlContent = $this->createEmailTemplate($fromName, $fromEmail, $subject, $messageBody, $phone);
+        $plainContent = $this->createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone);
         $boundary = md5(uniqid(time()));
 
         $headers = [];
@@ -85,10 +81,28 @@ class EmailService
         $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
         $headers[] = "X-Mailer: PHP/" . phpversion();
 
+        // Ưu tiên PHPMailer nếu có (ổn định hơn, tự lo TLS)
+        if ($this->canUsePHPMailer()) {
+            $sent = $this->sendViaPHPMailer(
+                $toEmail,
+                $fromName,
+                "[Book Store] " . $subject,
+                $htmlContent,
+                true,
+                $plainContent,
+                $fromEmail,
+                $fromName
+            );
+            if (!$sent) {
+                $this->saveLocalCopy($toEmail, $subject, $htmlContent);
+            }
+            return $sent;
+        }
+
         $body = "--{$boundary}\r\n";
         $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
         $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-        $body .= $this->createPlainTextEmail($fromName, $fromEmail, $messageBody, $phone);
+        $body .= $plainContent;
         $body .= "\r\n\r\n--{$boundary}\r\n";
         $body .= "Content-Type: text/html; charset=UTF-8\r\n";
         $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
@@ -98,9 +112,6 @@ class EmailService
         return $this->sendViaSMTP($toEmail, "[Book Store] " . $subject, $body, $headers);
     }
 
-    /**
-     * Kiểm tra có thể dùng PHPMailer (đã cài composer) hay chưa.
-     */
     private function canUsePHPMailer(): bool
     {
         $autoload = __DIR__ . '/../vendor/autoload.php';
@@ -109,11 +120,16 @@ class EmailService
         }
         return class_exists('\\PHPMailer\\PHPMailer\\PHPMailer');
     }
-
-    /**
-     * Gửi qua PHPMailer (khuyến nghị)
-     */
-    private function sendViaPHPMailer(string $toEmail, string $toName, string $subject, string $htmlBody, bool $isHtml = true): bool
+    private function sendViaPHPMailer(
+        string $toEmail,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        bool $isHtml = true,
+        string $altBody = '',
+        ?string $replyToEmail = null,
+        ?string $replyToName = null
+    ): bool
     {
         if (!class_exists('\\PHPMailer\\PHPMailer\\PHPMailer')) {
             return false;
@@ -133,11 +149,16 @@ class EmailService
             $mail->CharSet = 'UTF-8';
             $mail->setFrom($this->fromEmail, $this->fromName);
             $mail->addAddress($toEmail, $toName);
+            if ($replyToEmail) {
+                $mail->addReplyTo($replyToEmail, $replyToName ?: $replyToEmail);
+            }
             $mail->Subject = $subject;
             if ($isHtml) {
                 $mail->isHTML(true);
                 $mail->Body    = $htmlBody;
-                $mail->AltBody = strip_tags(str_replace("<br>", "\n", $htmlBody));
+                $mail->AltBody = $altBody !== ''
+                    ? $altBody
+                    : strip_tags(str_replace("<br>", "\n", $htmlBody));
             } else {
                 $mail->isHTML(false);
                 $mail->Body = $htmlBody;
@@ -303,9 +324,6 @@ HTML;
         return $ok;
     }
 
-    /**
-     * Lưu email vào file log để kiểm thử local khi SMTP không gửi được.
-     */
     private function saveLocalCopy(string $to, string $subject, string $body): void
     {
         $dir = __DIR__ . '/../storage/logs';

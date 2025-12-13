@@ -28,6 +28,7 @@ final class AdminBookVariantModel extends BaseModel
         $sqlCount = "
             SELECT COUNT(*)
             FROM book_variants v
+            JOIN books b ON b.id = v.book_id
             {$whereSQL}
         ";
         $st = self::db()->prepare($sqlCount);
