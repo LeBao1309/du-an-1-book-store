@@ -9,6 +9,21 @@ $lastPage = $pagination['last_page'] ?? 1;
 $total    = $pagination['total'] ?? 0;
 ?>
 <style>
+  .community-page {
+    margin-top: 4px;
+  }
+  .community-page .admin-card {
+    border-radius: 20px;
+    box-shadow: 0 18px 48px rgba(15,23,42,0.08);
+  }
+  .community-page .admin-card-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .community-page .admin-table tbody tr:hover {
+    background:#f8fafc;
+  }
   .community-page .badge-rating {
     display:inline-flex;
     align-items:center;
@@ -23,6 +38,32 @@ $total    = $pagination['total'] ?? 0;
   .community-page .comment-content {
     max-width:360px;
     color:#374151;
+  }
+  .wd-icon-btn {
+    border: none;
+    background: #eef2ff;
+    color: #4f46e5;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    margin-right: 4px;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .wd-icon-btn:hover {
+    background: #e0e7ff;
+    transform: translateY(-1px);
+  }
+  .wd-icon-btn.danger {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  .wd-icon-btn.danger:hover {
+    background: #fecaca;
   }
 </style>
 
@@ -62,6 +103,7 @@ $total    = $pagination['total'] ?? 0;
   <div class="admin-card">
     <div class="admin-card-header">
       <span>Danh sách bình luận (<?= (int)$total; ?>)</span>
+      <small style="color:#6b7280;">Trang <?= (int)$page; ?>/<?= (int)$lastPage; ?></small>
     </div>
     <div class="admin-table-wrapper">
       <table class="admin-table">

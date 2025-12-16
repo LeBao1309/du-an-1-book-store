@@ -112,6 +112,94 @@ class EmailService
         return $this->sendViaSMTP($toEmail, "[Book Store] " . $subject, $body, $headers);
     }
 
+    /**
+     * Gửi email đặt lại mật khẩu với template HTML và fallback text.
+     */
+    public function sendResetTemplate(string $toEmail, string $toName, string $subject, string $resetLink): bool
+    {
+        $safeName = htmlspecialchars($toName, ENT_QUOTES, 'UTF-8');
+        $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
+
+        $plain = "Xin chào {$toName},\n\n"
+               . "Bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu cho tài khoản Book Store.\n"
+               . "Nhấp vào liên kết dưới đây để đặt lại mật khẩu:\n{$resetLink}\n\n"
+               . "Liên kết có hiệu lực 60 phút. Nếu không phải bạn, hãy bỏ qua email này.\n"
+               . "Sau khi đặt lại, hãy đăng nhập bằng mật khẩu mới.";
+
+        // Template HTML gọn gàng, có nút CTA
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f7fb; margin:0; padding:20px; color:#0f172a; }
+    .wrap { max-width:600px; margin:0 auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 20px 60px rgba(15,23,42,0.12); }
+    .hero { background: linear-gradient(135deg, #0ea5a5 0%, #0fbf9b 100%); color:#fff; padding:28px 24px; }
+    .hero h2 { margin:0 0 8px; font-size:22px; }
+    .hero p { margin:0; opacity:0.9; }
+    .body { padding:24px; }
+    .card { background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:18px; margin:16px 0; }
+    .btn { display:inline-block; padding:12px 18px; border-radius:10px; background:#0ea5a5; color:#fff; text-decoration:none; font-weight:700; box-shadow:0 12px 30px rgba(14,165,165,0.25); }
+    .btn:hover { background:#0b8c8c; }
+    .note { font-size:13px; color:#475569; margin-top:12px; }
+    .footer { padding:14px 24px 20px; font-size:12px; color:#64748b; background:#f8fafc; border-top:1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h2>Đặt lại mật khẩu</h2>
+      <p>Xin chào {$safeName}, chúng tôi nhận được yêu cầu đặt lại mật khẩu của bạn.</p>
+    </div>
+    <div class="body">
+      <p>Nhấp nút bên dưới để mở trang đổi mật khẩu. Liên kết chỉ có hiệu lực trong 60 phút.</p>
+      <div class="card">
+        <a class="btn" href="{$safeLink}" target="_blank" rel="noopener">Đặt lại mật khẩu</a>
+        <div class="note">
+          Nếu nút không hoạt động, hãy sao chép đường dẫn này vào trình duyệt:<br>
+          <span style="word-break:break-all;color:#0ea5a5;">{$safeLink}</span>
+        </div>
+      </div>
+      <p class="note">Sau khi đổi thành công, hãy đăng nhập bằng mật khẩu mới để tiếp tục sử dụng.</p>
+    </div>
+    <div class="footer">
+      Email tự động từ Book Store. Nếu không phải bạn, có thể bỏ qua email này.
+    </div>
+  </div>
+</body>
+</html>
+HTML;
+
+        if (empty($this->username) || empty($this->password)) {
+            error_log("EmailService: SMTP chưa cấu hình, lưu nội dung reset local.");
+            $this->saveLocalCopy($toEmail, $subject, $plain);
+            return false;
+        }
+
+        if ($this->canUsePHPMailer()) {
+            $sent = $this->sendViaPHPMailer($toEmail, $toName, $subject, $html, true, $plain);
+            if (!$sent) {
+                $this->saveLocalCopy($toEmail, $subject, $plain);
+            }
+            return $sent;
+        }
+
+        // Fallback: gửi HTML qua SMTP tay, nếu lỗi thì lưu local
+        $headers = [];
+        $headers[] = "From: {$this->fromName} <{$this->fromEmail}>";
+        $headers[] = "To: {$toName} <{$toEmail}>";
+        $headers[] = "MIME-Version: 1.0";
+        $headers[] = "Content-Type: text/html; charset=UTF-8";
+        $headers[] = "Content-Transfer-Encoding: 8bit";
+
+        $sent = $this->sendViaSMTP($toEmail, $subject, $html, $headers);
+        if (!$sent) {
+            $this->saveLocalCopy($toEmail, $subject, $plain);
+        }
+        return $sent;
+    }
+
     private function canUsePHPMailer(): bool
     {
         $autoload = __DIR__ . '/../vendor/autoload.php';
