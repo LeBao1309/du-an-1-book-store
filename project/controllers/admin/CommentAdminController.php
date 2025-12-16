@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/BaseAdminController.php';
 require_once __DIR__ . '/../../models/admin/AdminCommentModel.php';
+require_once __DIR__ . '/../../models/CommentModel.php';
 
 final class CommentAdminController extends BaseAdminController
 {

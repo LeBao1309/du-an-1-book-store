@@ -34,6 +34,9 @@ class ProductController extends BaseController
         // Lấy bình luận và thống kê rating
         $comments = CommentModel::getByBookId($id);
         $commentStats = CommentModel::getAverageRating($id);
+        // Đồng bộ thống kê rating để view dùng trực tiếp trên $book
+        $book['rating_avg'] = isset($commentStats['avg_rating']) ? round((float)$commentStats['avg_rating'], 2) : 0;
+        $book['review_count'] = (int)($commentStats['total'] ?? 0);
         
         // Kiểm tra user đã mua sản phẩm chưa
         $hasPurchased = false;

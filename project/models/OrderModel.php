@@ -67,7 +67,11 @@ final class OrderModel extends BaseModel
         string $shippingStatus = 'pending',
         ?string $note = null,
         ?int $couponId = null,
-        float $discountAmount = 0.0
+        float $discountAmount = 0.0,
+        string $paymentStatus = 'pending',
+        ?string $paymentMethod = null,
+        ?string $paymentProvider = null,
+        ?string $transactionCode = null
     ): int {
         if (empty($cart)) {
             throw new \RuntimeException('Giỏ hàng trống, không thể tạo đơn.');
@@ -133,6 +137,7 @@ final class OrderModel extends BaseModel
                 }
                 $totalAmount += $priceMap[$vid] * $qty;
             }
+            $finalTotal = max(0, $totalAmount - $discountAmount);
 
             // 3) INSERT orders
             $sqlOrder = "
@@ -142,6 +147,7 @@ final class OrderModel extends BaseModel
                     total,
                     coupon_id,
                     discount_amount,
+                    payment_status,
                     shipping_status,
                     shipping_address,
                     shipping_phone,
@@ -154,6 +160,7 @@ final class OrderModel extends BaseModel
                     :total,
                     :coupon_id,
                     :discount_amount,
+                    :payment_status,
                     :shipping_status,
                     :shipping_address,
                     :shipping_phone,
@@ -168,6 +175,7 @@ final class OrderModel extends BaseModel
                 ':total'            => $totalAmount,
                 ':coupon_id'        => $couponId,
                 ':discount_amount'  => $discountAmount,
+                ':payment_status'   => $paymentStatus,
                 ':shipping_status'  => $shippingStatus,
                 ':shipping_address' => $shippingAddress,
                 ':shipping_phone'   => $shippingPhone,
@@ -198,6 +206,33 @@ final class OrderModel extends BaseModel
                     ':subtotal'   => $sub,
                 ]);
             }
+
+            // 5) Ghi bảng payment (để admin xem phương thức & trạng thái)
+            $payStatus = ($paymentStatus === 'paid') ? 'success' : 'pending';
+            // An toàn với enum DB (đa số chỉ có cod/card); fallback về cod nếu không khớp
+            $allowedMethods = ['cod','card'];
+            $payMethod = in_array($paymentMethod, $allowedMethods, true) ? $paymentMethod : 'cod';
+            $payProvider = $paymentProvider ?: $payMethod;
+            $stmtPay = $pdo->prepare("
+                INSERT INTO payment (order_id, payment_method, amount, status, provider, transaction_code, paid_at)
+                VALUES (:order_id, :method, :amount, :status, :provider, :txn, :paid_at)
+                ON DUPLICATE KEY UPDATE
+                    payment_method = VALUES(payment_method),
+                    amount = VALUES(amount),
+                    status = VALUES(status),
+                    provider = VALUES(provider),
+                    transaction_code = VALUES(transaction_code),
+                    paid_at = VALUES(paid_at)
+            ");
+            $stmtPay->execute([
+                ':order_id' => $orderId,
+                ':method'   => $payMethod,
+                ':amount'   => $finalTotal,
+                ':status'   => $payStatus,
+                ':provider' => $payProvider,
+                ':txn'      => $transactionCode,
+                ':paid_at'  => ($payStatus === 'success') ? date('Y-m-d H:i:s') : null,
+            ]);
 
             $pdo->commit();
             return $orderId;

@@ -1065,6 +1065,32 @@ textarea.form-control {
     padding: 40px;
     color: #999;
 }
+
+/* ===== Responsive tweaks ===== */
+@media (max-width: 992px) {
+    .product-container { padding: 20px; }
+    .product-title { font-size: 24px; }
+    .product-price { font-size: 30px; }
+    .variant-selector { padding: 16px; }
+    .variant-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+    }
+    .thumb-images { flex-wrap: wrap; justify-content: center; }
+}
+
+@media (max-width: 768px) {
+    .product-container { padding: 16px; }
+    .row { row-gap: 16px; }
+    .product-title { font-size: 20px; }
+    .product-price { font-size: 26px; }
+    .variant-btn { padding: 14px 12px; min-width: 0; }
+    .quantity-selector { padding: 14px; }
+    .back-button-top { text-align: center; }
+    .btn-back-top { width: 100%; justify-content: center; }
+    .related-item { padding: 10px; }
+}
 </style>
 
 <div class="container py-4">

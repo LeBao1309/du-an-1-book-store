@@ -72,12 +72,17 @@ final class CommentModel extends BaseModel
                     VALUES (:bookId, :userId, :content, :rating, NOW())";
             
             $stmt = self::db()->prepare($sql);
-            return $stmt->execute([
+            $ok = $stmt->execute([
                 ':bookId' => $bookId,
                 ':userId' => $userId,
                 ':content' => $content,
                 ':rating' => $rating
             ]);
+
+            if ($ok) {
+                self::recalculateBookRating($bookId);
+            }
+            return $ok;
         } catch (PDOException $e) {
             error_log("Error creating comment: " . $e->getMessage());
             return false;
@@ -103,6 +108,30 @@ final class CommentModel extends BaseModel
         } catch (PDOException $e) {
             error_log("Error checking user comment: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Cập nhật rating_avg và review_count cho sách dựa trên bảng comments.
+     */
+    public static function recalculateBookRating(int $bookId): void
+    {
+        try {
+            $pdo = self::db();
+            $stmt = $pdo->prepare("SELECT AVG(rating) AS avg_rating, COUNT(*) AS total FROM comments WHERE book_id = :bid AND rating IS NOT NULL");
+            $stmt->execute([':bid' => $bookId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['avg_rating' => 0, 'total' => 0];
+            $avg = $row['avg_rating'] !== null ? round((float)$row['avg_rating'], 2) : 0;
+            $total = (int)$row['total'];
+
+            $update = $pdo->prepare("UPDATE books SET rating_avg = :avg, review_count = :total WHERE id = :bid");
+            $update->execute([
+                ':avg' => $avg,
+                ':total' => $total,
+                ':bid' => $bookId
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error recalculating book rating: " . $e->getMessage());
         }
     }
 }

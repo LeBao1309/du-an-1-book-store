@@ -217,6 +217,15 @@ final class AdminBookModel extends BaseModel
         return $st->fetchAll();
     }
 
+    public static function nextSortOrder(int $bookId): int
+    {
+        $sql = "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_sort FROM book_images WHERE book_id = :bid AND is_deleted = 0";
+        $st  = self::db()->prepare($sql);
+        $st->execute([":bid" => $bookId]);
+        $row = $st->fetch();
+        return (int)($row['next_sort'] ?? 0);
+    }
+
     /* Add image */
     public static function addImage(int $bookId, string $url, int $sort = 0): bool
     {

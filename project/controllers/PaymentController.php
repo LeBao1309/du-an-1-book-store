@@ -416,7 +416,7 @@ class PaymentController extends BaseController
     /**
      * Tạo đơn hàng sau khi VNPay success
      */
-    private function createOrderAfterPayment(string $note = ''): ?int
+    private function createOrderAfterPayment(string $note = '', ?string $transactionCode = null): ?int
     {
         $this->normalizeCartSession();
 
@@ -447,7 +447,11 @@ class PaymentController extends BaseController
             'pending',
             $note,
             $couponId,
-            $discount
+            $discount,
+            'paid',
+            'card', // VNPay: map về 'card' để khớp enum payment_method
+            'VNPay',
+            $transactionCode
         );
 
         if ($orderId && $couponId) {
@@ -494,7 +498,8 @@ class PaymentController extends BaseController
 
         if ($isValid && $rspCode === '00') {
             $dbOrderId = $this->createOrderAfterPayment(
-                'Thanh toán VNPay thành công - mã giao dịch: ' . $txnRef
+                'Thanh toán VNPay thành công - mã giao dịch: ' . $txnRef,
+                $txnRef
             );
 
             if ($dbOrderId) {
@@ -567,7 +572,11 @@ class PaymentController extends BaseController
             'pending',
             'Thanh toán COD',
             $couponId,
-            $discountAmount
+            $discountAmount,
+            'pending',
+            'cod',
+            'COD',
+            null
         );
 
         if ($orderId && $couponId) {

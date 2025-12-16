@@ -12,8 +12,8 @@ class QuestionModel extends BaseModel
                     q.*,
                     u.name as user_name,
                     u.email as user_email,
-                    (SELECT COUNT(*) FROM question_answers WHERE question_id = q.id) as answer_count
-                FROM product_questions q
+                    (SELECT COUNT(*) FROM answers WHERE question_id = q.id) as answer_count
+                FROM questions q
                 LEFT JOIN users u ON q.user_id = u.id
                 WHERE q.book_id = ?
                 ORDER BY q.created_at DESC
@@ -29,7 +29,7 @@ class QuestionModel extends BaseModel
      */
     public static function countQuestionsByBookId($bookId)
     {
-        $sql = "SELECT COUNT(*) as total FROM product_questions WHERE book_id = ?";
+        $sql = "SELECT COUNT(*) as total FROM questions WHERE book_id = ?";
         $stmt = self::db()->prepare($sql);
         $stmt->execute([$bookId]);
         $result = $stmt->fetch();
@@ -45,7 +45,7 @@ class QuestionModel extends BaseModel
                     q.*,
                     u.name as user_name,
                     u.email as user_email
-                FROM product_questions q
+                FROM questions q
                 LEFT JOIN users u ON q.user_id = u.id
                 WHERE q.id = ?";
         
@@ -59,7 +59,7 @@ class QuestionModel extends BaseModel
      */
     public static function createQuestion($bookId, $userId, $question)
     {
-        $sql = "INSERT INTO product_questions (book_id, user_id, question) VALUES (?, ?, ?)";
+        $sql = "INSERT INTO questions (book_id, user_id, question) VALUES (?, ?, ?)";
         $stmt = self::db()->prepare($sql);
         return $stmt->execute([$bookId, $userId, $question]);
     }
@@ -74,10 +74,10 @@ class QuestionModel extends BaseModel
                     u.name as user_name,
                     u.email as user_email,
                     u.role as user_role
-                FROM question_answers a
+                FROM answers a
                 LEFT JOIN users u ON a.user_id = u.id
                 WHERE a.question_id = ?
-                ORDER BY a.is_shop_answer DESC, a.upvotes DESC, a.created_at ASC";
+                ORDER BY a.is_shop_answer DESC, a.created_at ASC";
         
         $stmt = self::db()->prepare($sql);
         $stmt->execute([$questionId]);
@@ -89,14 +89,14 @@ class QuestionModel extends BaseModel
      */
     public static function createAnswer($questionId, $userId, $answer, $isShopAnswer = false)
     {
-        $sql = "INSERT INTO question_answers (question_id, user_id, answer, is_shop_answer) 
+        $sql = "INSERT INTO answers (question_id, user_id, answer, is_shop_answer) 
                 VALUES (?, ?, ?, ?)";
         $stmt = self::db()->prepare($sql);
         $result = $stmt->execute([$questionId, $userId, $answer, $isShopAnswer ? 1 : 0]);
         
         // Cập nhật trạng thái đã trả lời
         if ($result) {
-            $updateSql = "UPDATE product_questions SET is_answered = 1 WHERE id = ?";
+            $updateSql = "UPDATE questions SET is_answered = 1 WHERE id = ?";
             $updateStmt = self::db()->prepare($updateSql);
             $updateStmt->execute([$questionId]);
         }
@@ -120,6 +120,10 @@ class QuestionModel extends BaseModel
      */
     public static function voteAnswer($answerId, $userId, $voteType)
     {
+        // Chuẩn hóa giá trị vote theo enum 'up' | 'down'
+        if ($voteType === 'upvote') $voteType = 'up';
+        if ($voteType === 'downvote') $voteType = 'down';
+
         // Kiểm tra đã vote chưa
         $existingVote = self::getUserVote($answerId, $userId);
         
@@ -130,32 +134,12 @@ class QuestionModel extends BaseModel
                 $stmt = self::db()->prepare($sql);
                 $result = $stmt->execute([$answerId, $userId]);
                 
-                // Giảm vote count
-                if ($result) {
-                    $column = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
-                    $updateSql = "UPDATE question_answers SET {$column} = {$column} - 1 WHERE id = ?";
-                    $updateStmt = self::db()->prepare($updateSql);
-                    $updateStmt->execute([$answerId]);
-                }
-                
                 return ['action' => 'removed', 'vote_type' => $voteType];
             } else {
                 // Nếu vote khác thì đổi vote
                 $sql = "UPDATE answer_votes SET vote_type = ? WHERE answer_id = ? AND user_id = ?";
                 $stmt = self::db()->prepare($sql);
                 $result = $stmt->execute([$voteType, $answerId, $userId]);
-                
-                // Cập nhật vote count
-                if ($result) {
-                    $oldColumn = $existingVote['vote_type'] === 'upvote' ? 'upvotes' : 'downvotes';
-                    $newColumn = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
-                    
-                    $updateSql = "UPDATE question_answers 
-                                 SET {$oldColumn} = {$oldColumn} - 1, {$newColumn} = {$newColumn} + 1 
-                                 WHERE id = ?";
-                    $updateStmt = self::db()->prepare($updateSql);
-                    $updateStmt->execute([$answerId]);
-                }
                 
                 return ['action' => 'changed', 'vote_type' => $voteType];
             }
@@ -164,14 +148,6 @@ class QuestionModel extends BaseModel
             $sql = "INSERT INTO answer_votes (answer_id, user_id, vote_type) VALUES (?, ?, ?)";
             $stmt = self::db()->prepare($sql);
             $result = $stmt->execute([$answerId, $userId, $voteType]);
-            
-            // Tăng vote count
-            if ($result) {
-                $column = $voteType === 'upvote' ? 'upvotes' : 'downvotes';
-                $updateSql = "UPDATE question_answers SET {$column} = {$column} + 1 WHERE id = ?";
-                $updateStmt = self::db()->prepare($updateSql);
-                $updateStmt->execute([$answerId]);
-            }
             
             return ['action' => 'added', 'vote_type' => $voteType];
         }
@@ -182,9 +158,15 @@ class QuestionModel extends BaseModel
      */
     public static function getAnswerVoteCounts($answerId)
     {
-        $sql = "SELECT upvotes, downvotes FROM question_answers WHERE id = ?";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([$answerId]);
-        return $stmt->fetch();
+        $sqlUp   = "SELECT COUNT(*) FROM answer_votes WHERE answer_id = ? AND vote_type = 'up'";
+        $sqlDown = "SELECT COUNT(*) FROM answer_votes WHERE answer_id = ? AND vote_type = 'down'";
+        $stmtUp = self::db()->prepare($sqlUp);
+        $stmtDown = self::db()->prepare($sqlDown);
+        $stmtUp->execute([$answerId]);
+        $stmtDown->execute([$answerId]);
+        return [
+            'upvotes' => (int)$stmtUp->fetchColumn(),
+            'downvotes' => (int)$stmtDown->fetchColumn(),
+        ];
     }
 }

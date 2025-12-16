@@ -134,14 +134,21 @@ final class AdminAuthController extends BaseAdminController
 
     private function sendResetEmail(string $email, string $name, string $token): bool
     {
-        $link = 'index.php?c=auth&a=reset&token=' . urlencode($token);
-        $subject = '[Admin] Đặt lại mật khẩu';
-        $body = "Xin chào {$name},\n\n"
-              . "Nhấp liên kết để đặt lại mật khẩu admin:\n{$link}\n\n"
-              . "Liên kết có hiệu lực 60 phút.";
+        $relative = 'index.php?c=auth&a=reset&token=' . urlencode($token);
+        $link = $this->buildAbsoluteLink($relative);
         require_once __DIR__ . '/../../services/EmailService.php';
         $mailer = new EmailService();
-        $sent = $mailer->sendPlain($email, $name, $subject, $body);
-        return $sent;
+        $subject = '[Admin] Đặt lại mật khẩu';
+        return $mailer->sendResetTemplate($email, $name, $subject, $link);
+    }
+
+    private function buildAbsoluteLink(string $relativePath): string
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host   = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        $base   = rtrim(str_replace('\\', '/', dirname($script)), '/');
+        $base   = $base === '' ? '' : $base . '/';
+        return $scheme . '://' . $host . '/' . ltrim($base . ltrim($relativePath, '/'), '/');
     }
 }
