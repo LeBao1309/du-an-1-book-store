@@ -1,14 +1,21 @@
+<?php
+// views/cart/index.php
+// Controller truyền: 
+// $cartItems, $totalQuantity, $totalPrice, $csrf, $ASSET
+?>
+
 <div class="container my-5">
   <h1 class="mb-4">Giỏ hàng của bạn</h1>
 
-  <?php if (empty($cart)): ?>
+  <?php if (empty($cartItems)): ?>
     <div class="alert alert-info">
       Giỏ hàng đang trống. Hãy chọn vài cuốn sách yêu thích nhé 📚
     </div>
 
     <a href="index.php?controller=home&action=index" class="btn btn-primary">
       ⬅ Tiếp tục mua sách
-    </a>      
+    </a>
+
   <?php else: ?>
   <div class="card p-3 shadow-sm">
 
@@ -23,32 +30,40 @@
             <th></th>
           </tr>
         </thead>
-        <tbody>
-        <?php foreach ($cart as $item): ?>
-          <?php
-            $rawImage = $item['image_url'] ?? '';
-            if ($rawImage === '' || $rawImage === null) {
-                $imageSrc = $ASSET . '/img/placeholder-book.png';
-            } else {
-                $imageSrc = $ASSET . '/' . ltrim($rawImage, '/');
-            }
 
-            $qty   = (int)($item['quantity'] ?? 0);
-            $price = (int)($item['price'] ?? 0);
-            $subtotal = $qty * $price;
+        <tbody>
+        <?php foreach ($cartItems as $item): ?>
+          <?php
+            // Ảnh
+            $rawImage = $item['image_url'] ?? '';
+            $imageSrc = ($rawImage === '' || $rawImage === null)
+              ? $ASSET . '/img/placeholder-book.png'
+              : $ASSET . '/' . ltrim($rawImage, '/');
+
+            // Dữ liệu hydrate từ DB
+            $qty      = (int)$item['quantity'];
+            $price    = (int)$item['price'];
+            $subtotal = (int)$item['subtotal'];
+            $variantId = (int)$item['variant_id'];
           ?>
           <tr>
             <td>
               <div class="d-flex align-items-center">
                 <img
                   src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
-                  alt="<?= htmlspecialchars($item['title'] ?? 'Sách') ?>"
+                  alt="<?= htmlspecialchars($item['title'] ?? 'Sách', ENT_QUOTES, 'UTF-8') ?>"
                   style="width:60px; height:80px; object-fit:cover; margin-right:12px; border-radius:4px;"
                 >
                 <div>
                   <div class="fw-semibold">
-                    <?= htmlspecialchars($item['title'] ?? 'Không tên') ?>
+                    <?= htmlspecialchars($item['title'] ?? 'Không tên', ENT_QUOTES, 'UTF-8') ?>
                   </div>
+
+                  <?php if (!empty($item['format'])): ?>
+                    <div class="text-muted small">
+                      <?= htmlspecialchars($item['format'], ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                  <?php endif; ?>
                 </div>
               </div>
             </td>
@@ -59,19 +74,20 @@
 
             <td class="text-center" style="width:160px;">
               <div class="d-flex justify-content-center align-items-center gap-1">
-                <!-- Nút GIẢM -->
+
+                <!-- GIẢM -->
                 <form
                   action="index.php?controller=cart&action=updateSingle"
                   method="POST"
                   class="d-inline"
                 >
-                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
-                  <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
+                  <input type="hidden" name="id" value="<?= $variantId ?>">
                   <input type="hidden" name="direction" value="dec">
                   <button type="submit" class="btn btn-sm btn-outline-secondary">-</button>
                 </form>
 
-                <!-- Hiển thị số lượng hiện tại (readonly) -->
+                <!-- SỐ LƯỢNG -->
                 <input
                   type="number"
                   value="<?= $qty ?>"
@@ -79,14 +95,15 @@
                   style="max-width:60px;"
                   readonly
                 >
-                <!-- Nút TĂNG -->
+
+                <!-- TĂNG -->
                 <form
                   action="index.php?controller=cart&action=updateSingle"
                   method="POST"
                   class="d-inline"
                 >
-                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
-                  <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
+                  <input type="hidden" name="id" value="<?= $variantId ?>">
                   <input type="hidden" name="direction" value="inc">
                   <button type="submit" class="btn btn-sm btn-outline-secondary">+</button>
                 </form>
@@ -99,7 +116,7 @@
 
             <td class="text-end">
               <a
-                href="index.php?controller=cart&action=remove&id=<?= (int)$item['id'] ?>"
+                href="index.php?controller=cart&action=remove&id=<?= $variantId ?>"
                 class="btn btn-sm btn-outline-danger"
               >
                 Xóa
@@ -139,7 +156,6 @@
           </span>
         </p>
 
-        <!-- Nút đi tới trang thanh toán (checkout) -->
         <?php $loggedIn = !empty($_SESSION['user']); ?>
         <?php if ($loggedIn): ?>
           <a
@@ -156,9 +172,9 @@
             Đăng nhập để thanh toán
           </a>
         <?php endif; ?>
-
       </div>
     </div>
 
   </div>
 <?php endif; ?>
+</div>

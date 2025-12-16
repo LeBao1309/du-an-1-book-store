@@ -1,140 +1,217 @@
 <?php
 
-require_once __DIR__ . '/../models/UserModel.php';   // vì bạn dùng UserModel::getAddresses
-require_once __DIR__ . '/../models/OrderModel.php'; // để dùng OrderModel::createFromCart
+require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/OrderModel.php';
 require_once __DIR__ . '/../models/CouponModel.php';
+require_once __DIR__ . '/../models/BookModel.php';
+
 /**
  * PaymentController
  *
  * Xử lý các bước thanh toán:
  * - Trang checkout: chọn phương thức thanh toán
  * - Thanh toán VNPay
- * - Thanh toán MoMo
  * - Thanh toán khi nhận hàng (COD)
  */
 class PaymentController extends BaseController
 {
     /**
-     * Tính tổng tiền giỏ hàng hiện tại (VND)
+     * Chuẩn hoá giỏ hàng trong session:
+     * - NEW: $_SESSION['cart'][variant_id] = ['variant_id'=>int,'quantity'=>int]
+     * - OLD: $_SESSION['cart'][book_id]    = ['id','title','price','image_url','quantity']
+     * => tự migrate OLD -> NEW (chọn variant rẻ nhất của book)
      */
-    private function getCartAmount(): int
+    private function normalizeCartSession(): void
     {
         $cart = $_SESSION['cart'] ?? [];
-        $totalAmount = 0;
-
-        foreach ($cart as $item) {
-            $qty   = (int)($item['quantity'] ?? 0);
-            $price = (int)($item['price'] ?? 0);
-            $totalAmount += $qty * $price;
+        if (empty($cart) || !is_array($cart)) {
+            $_SESSION['cart'] = [];
+            return;
         }
 
-        return $totalAmount;
+        // NEW cart
+        $first = reset($cart);
+        if (is_array($first) && isset($first['variant_id'])) {
+            $fixed = [];
+            foreach ($cart as $k => $item) {
+                $vid = (int)($item['variant_id'] ?? $k);
+                $qty = (int)($item['quantity'] ?? 0);
+                if ($vid > 0 && $qty > 0) {
+                    $fixed[$vid] = ['variant_id' => $vid, 'quantity' => $qty];
+                }
+            }
+            $_SESSION['cart'] = $fixed;
+            return;
+        }
+
+        // OLD cart -> migrate
+        $new = [];
+        foreach ($cart as $bookId => $item) {
+            $bookId = (int)$bookId;
+            $qty    = (int)($item['quantity'] ?? 0);
+            if ($bookId <= 0 || $qty <= 0) continue;
+
+            $variantId = BookModel::getCheapestVariantId($bookId);
+            if ($variantId <= 0) continue;
+
+            if (isset($new[$variantId])) $new[$variantId]['quantity'] += $qty;
+            else $new[$variantId] = ['variant_id' => $variantId, 'quantity' => $qty];
+        }
+
+        $_SESSION['cart'] = $new;
     }
 
     /**
-     * Trang checkout: hiển thị tóm tắt đơn + chọn phương thức thanh toán
-     * URL: GET index.php?controller=payment&action=checkout
+     * Hydrate giỏ hàng từ DB theo variant_id
+     * Trả về: items, totalAmount, totalQuantity
      */
-public function checkout(): string
-{
-    $this->requireAuth();
+    private function hydrateCartFromSession(): array
+    {
+        $this->normalizeCartSession();
 
-    $cart = $_SESSION['cart'] ?? [];
-    if (empty($cart)) {
-        $this->flash('warning', 'Giỏ hàng đang trống.');
-        $this->redirect('index.php?controller=cart&action=index');
-        return '';
-    }
-
-    $currentUser = $_SESSION['user'] ?? null;
-    $userId = (int)($currentUser['id'] ?? 0);
-
-    // 🔹 LẤY DANH SÁCH ĐỊA CHỈ CỦA USER
-    $addresses = UserModel::getAddresses($userId);
-
-    // 🔹 ƯU TIÊN ĐỊA CHỈ ĐÃ CHỌN Ở SESSION, NẾU CHƯA CÓ THÌ LẤY ĐỊA CHỈ ĐẦU TIÊN
-    $shipping = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
-
-    // 🔹 TÍNH COI CÓ ĐỦ ĐIỀU KIỆN CHECKOUT HAY CHƯA
-    $canCheckout = is_array($shipping)
-        && !empty($shipping['shipping_phone'])
-        && !empty($shipping['full_address']);
-
-    $totalAmount   = $this->getCartAmount(); // tổng trước giảm
-    $appliedCoupon = null;
-    $discountAmount = 0;
-
-    // Re-validate coupon nếu đã lưu trong session
-    if (!empty($_SESSION['checkout_coupon']['code'])) {
-        $code = $_SESSION['checkout_coupon']['code'];
-        $res = CouponModel::validateForOrder($code, $userId, $totalAmount);
-        if ($res['ok']) {
-            $appliedCoupon  = $res['coupon'];
-            $discountAmount = $res['discount'];
-            // lưu lại để process dùng
-            $_SESSION['checkout_coupon']['coupon_id'] = $appliedCoupon['id'];
-            $_SESSION['checkout_coupon']['discount']  = $discountAmount;
-        } else {
-            unset($_SESSION['checkout_coupon']);
-            $this->flash('warning', $res['error']);
+        $cartRef = $_SESSION['cart'] ?? [];
+        if (empty($cartRef)) {
+            return ['items' => [], 'totalAmount' => 0, 'totalQuantity' => 0];
         }
+
+        $variantIds = array_map('intval', array_keys($cartRef));
+        $dbItems    = BookModel::getCartItemsByVariantIds($variantIds);
+
+        $indexed = [];
+        foreach ($dbItems as $row) {
+            $indexed[(int)$row['variant_id']] = $row;
+        }
+
+        $items = [];
+        $totalAmount = 0;
+        $totalQuantity = 0;
+
+        foreach ($cartRef as $vid => $ref) {
+            $vid = (int)$vid;
+            $qty = (int)($ref['quantity'] ?? 0);
+            if ($qty <= 0) continue;
+            if (!isset($indexed[$vid])) continue;
+
+            $unit = (int)$indexed[$vid]['unit_price'];
+            $sub  = $unit * $qty;
+
+            $items[] = [
+                'variant_id' => $vid,
+                'book_id'    => (int)$indexed[$vid]['book_id'],
+                'title'      => (string)$indexed[$vid]['title'],
+                'format'     => (string)($indexed[$vid]['format'] ?? ''),
+                'price'      => $unit,
+                'quantity'   => $qty,
+                'subtotal'   => $sub,
+                'image_url'  => (string)($indexed[$vid]['image_url'] ?? ''),
+            ];
+
+            $totalAmount   += $sub;
+            $totalQuantity += $qty;
+        }
+
+        return ['items' => $items, 'totalAmount' => $totalAmount, 'totalQuantity' => $totalQuantity];
     }
-
-    $totalQuantity = 0;
-    foreach ($cart as $item) {
-        $totalQuantity += (int)($item['quantity'] ?? 0);
-    }
-
-    $csrf = $this->csrfToken();
-
-    return $this->render('payment/checkout', [
-        'cart'          => $cart,
-        'currentUser'   => $currentUser,
-        'shipping'      => $shipping,
-        'addresses'     => $addresses,   // 🔹 TRUYỀN XUỐNG VIEW
-        'totalAmount'   => $totalAmount,
-        'appliedCoupon' => $appliedCoupon,
-        'discountAmount'=> $discountAmount,
-        'totalQuantity' => $totalQuantity,
-        'canCheckout'   => $canCheckout,
-        'csrf'          => $csrf,
-    ]);
-}
-//
-public function selectShipping(): void
-{
-    $this->requireAuth();
-    $this->checkCsrf();
-
-    $currentUser = $_SESSION['user'] ?? null;
-    $userId = (int)($currentUser['id'] ?? 0);
-
-    $shippingId = (int)($_POST['shipping_id'] ?? 0);
-
-    if ($shippingId <= 0 || $userId <= 0) {
-        $this->flash('danger', 'Không chọn được địa chỉ giao hàng.');
-        $this->redirect('index.php?controller=payment&action=checkout');
-        return;
-    }
-
-    // 🔹 LẤY ĐỊA CHỈ THEO ID + USER, ĐẢM BẢO KHÔNG LẤY NHẦM CỦA NGƯỜI KHÁC
-    $shipping = UserModel::getAddressByIdAndUser($shippingId, $userId);
-
-    if (!$shipping) {
-        $this->flash('danger', 'Địa chỉ không hợp lệ.');
-        $this->redirect('index.php?controller=payment&action=checkout');
-        return;
-    }
-
-    // 🔹 LƯU ĐỊA CHỈ NÀY CHO LẦN CHECKOUT HIỆN TẠI
-    $_SESSION['checkout_shipping'] = $shipping;
-
-    $this->flash('success', 'Đã chọn địa chỉ giao hàng.');
-    $this->redirect('index.php?controller=payment&action=checkout');
-}
 
     /**
-     * Áp dụng mã giảm giá (POST từ checkout)
+     * Trang checkout
+     * GET index.php?controller=payment&action=checkout
+     */
+    public function checkout(): string
+    {
+        $this->requireAuth();
+
+        $hydrated  = $this->hydrateCartFromSession();
+        $cartItems = $hydrated['items'];
+
+        if (empty($cartItems)) {
+            $this->flash('warning', 'Giỏ hàng đang trống.');
+            $this->redirect('index.php?controller=cart&action=index');
+            return '';
+        }
+
+        $currentUser = $_SESSION['user'] ?? null;
+        $userId      = (int)($currentUser['id'] ?? 0);
+
+        $addresses = UserModel::getAddresses($userId);
+        $shipping  = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
+
+        $canCheckout = is_array($shipping)
+            && !empty($shipping['shipping_phone'])
+            && !empty($shipping['full_address']);
+
+        $totalAmount   = (int)$hydrated['totalAmount'];
+        $totalQuantity = (int)$hydrated['totalQuantity'];
+
+        $appliedCoupon  = null;
+        $discountAmount = 0.0;
+
+        if (!empty($_SESSION['checkout_coupon']['code'])) {
+            $code = $_SESSION['checkout_coupon']['code'];
+            $res  = CouponModel::validateForOrder($code, $userId, $totalAmount);
+
+            if ($res['ok']) {
+                $appliedCoupon  = $res['coupon'];
+                $discountAmount = (float)$res['discount'];
+
+                $_SESSION['checkout_coupon']['coupon_id'] = (int)$appliedCoupon['id'];
+                $_SESSION['checkout_coupon']['discount']  = (float)$discountAmount;
+            } else {
+                unset($_SESSION['checkout_coupon']);
+                $this->flash('warning', $res['error']);
+            }
+        }
+
+        // ✅ (2) checkout() truyền finalTotal
+        $finalTotal = (int)max(0, $totalAmount - (int)$discountAmount);
+
+        $csrf = $this->csrfToken();
+
+        return $this->render('payment/checkout', [
+            'cartItems'      => $cartItems,
+            'user'           => $currentUser,
+            'shipping'       => $shipping,
+            'addresses'      => $addresses,
+            'totalAmount'    => $totalAmount,
+            'discountAmount' => $discountAmount,
+            'finalTotal'     => $finalTotal, // ✅
+            'appliedCoupon'  => $appliedCoupon,
+            'totalQuantity'  => $totalQuantity,
+            'canCheckout'    => $canCheckout,
+            'csrf'           => $csrf,
+        ]);
+    }
+
+    public function selectShipping(): void
+    {
+        $this->requireAuth();
+        $this->checkCsrf();
+
+        $currentUser = $_SESSION['user'] ?? null;
+        $userId      = (int)($currentUser['id'] ?? 0);
+        $shippingId  = (int)($_POST['shipping_id'] ?? 0);
+
+        if ($shippingId <= 0 || $userId <= 0) {
+            $this->flash('danger', 'Không chọn được địa chỉ giao hàng.');
+            $this->redirect('index.php?controller=payment&action=checkout');
+            return;
+        }
+
+        $shipping = UserModel::getAddressByIdAndUser($shippingId, $userId);
+        if (!$shipping) {
+            $this->flash('danger', 'Địa chỉ không hợp lệ.');
+            $this->redirect('index.php?controller=payment&action=checkout');
+            return;
+        }
+
+        $_SESSION['checkout_shipping'] = $shipping;
+        $this->flash('success', 'Đã chọn địa chỉ giao hàng.');
+        $this->redirect('index.php?controller=payment&action=checkout');
+    }
+
+    /**
+     * Áp dụng mã giảm giá
+     * POST index.php?controller=payment&action=applyCoupon
      */
     public function applyCoupon(): void
     {
@@ -145,18 +222,29 @@ public function selectShipping(): void
         if ($code === '') {
             $this->flash('warning', 'Vui lòng nhập mã giảm giá.');
             $this->redirect('index.php?controller=payment&action=checkout');
+            return;
         }
 
         $currentUser = $_SESSION['user'] ?? null;
-        $userId = (int)($currentUser['id'] ?? 0);
-        $total = $this->getCartAmount();
+        $userId      = (int)($currentUser['id'] ?? 0);
+
+        // ✅ (1) applyCoupon() lấy total từ DB hydrate
+        $hydrated = $this->hydrateCartFromSession();
+        $total    = (int)($hydrated['totalAmount'] ?? 0);
+
+        if ($total <= 0) {
+            $this->flash('warning', 'Giỏ hàng đang trống hoặc không hợp lệ.');
+            $this->redirect('index.php?controller=cart&action=index');
+            return;
+        }
 
         $res = CouponModel::validateForOrder($code, $userId, $total);
+
         if ($res['ok']) {
             $_SESSION['checkout_coupon'] = [
                 'code'      => $code,
-                'coupon_id' => $res['coupon']['id'],
-                'discount'  => $res['discount'],
+                'coupon_id' => (int)$res['coupon']['id'],
+                'discount'  => (float)$res['discount'],
             ];
             $this->flash('success', 'Đã áp dụng mã giảm giá.');
         } else {
@@ -171,17 +259,15 @@ public function selectShipping(): void
     {
         $this->requireAuth();
         $this->checkCsrf();
+
         unset($_SESSION['checkout_coupon']);
         $this->flash('success', 'Đã bỏ mã giảm giá.');
         $this->redirect('index.php?controller=payment&action=checkout');
     }
 
-
-
-
     /**
-     * Xử lý form từ trang checkout: đọc phương thức và chuyển sang luồng tương ứng
-     * URL: POST index.php?controller=payment&action=process
+     * Xử lý form checkout
+     * POST index.php?controller=payment&action=process
      */
     public function process(): string
     {
@@ -192,14 +278,16 @@ public function selectShipping(): void
 
         $this->checkCsrf();
 
-        $cart = $_SESSION['cart'] ?? [];
-        if (empty($cart)) {
+        $hydrated  = $this->hydrateCartFromSession();
+        $cartItems = $hydrated['items'];
+
+        if (empty($cartItems)) {
             $this->flash('error', 'Giỏ hàng đang trống');
             $this->redirect('index.php?controller=cart&action=index');
             return '';
         }
 
-        $totalAmount = $this->getCartAmount();
+        $totalAmount = (int)($hydrated['totalAmount'] ?? 0);
         if ($totalAmount <= 0) {
             $this->flash('error', 'Số tiền thanh toán không hợp lệ');
             $this->redirect('index.php?controller=cart&action=index');
@@ -207,17 +295,34 @@ public function selectShipping(): void
         }
 
         $currentUser = $_SESSION['user'] ?? null;
-        $userId = (int)($currentUser['id'] ?? 0);
+        $userId      = (int)($currentUser['id'] ?? 0);
 
-        // Áp mã giảm giá (nếu có) và tính lại tổng
+        // ✅ (3) chặn cứng shipping trước VNPay/COD
+        $addresses = UserModel::getAddresses($userId);
+        $shipping  = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
+
+        if (
+            !$shipping
+            || empty($shipping['shipping_phone'])
+            || empty($shipping['full_address'])
+        ) {
+            $this->flash('error', 'Vui lòng chọn/cập nhật địa chỉ & số điện thoại nhận hàng trước khi thanh toán.');
+            $this->redirect('index.php?controller=payment&action=checkout');
+            return '';
+        }
+
+        // Re-validate coupon theo tổng tiền DB
         $discountAmount = 0.0;
         $couponId = null;
+
         if (!empty($_SESSION['checkout_coupon']['code'])) {
             $code = $_SESSION['checkout_coupon']['code'];
-            $res = CouponModel::validateForOrder($code, $userId, $totalAmount);
+            $res  = CouponModel::validateForOrder($code, $userId, $totalAmount);
+
             if ($res['ok']) {
-                $discountAmount = $res['discount'];
-                $couponId = $res['coupon']['id'];
+                $discountAmount = (float)$res['discount'];
+                $couponId       = (int)$res['coupon']['id'];
+
                 $_SESSION['checkout_coupon']['coupon_id'] = $couponId;
                 $_SESSION['checkout_coupon']['discount']  = $discountAmount;
             } else {
@@ -226,88 +331,74 @@ public function selectShipping(): void
             }
         }
 
-        $payable = max(0, $totalAmount - $discountAmount);
+        $payable = (int)max(0, $totalAmount - $discountAmount);
 
         $method = $_POST['payment_method'] ?? '';
 
         switch ($method) {
             case 'vnpay':
                 $this->payWithVnpay($payable);
-                return ''; // payWithVnpay sẽ redirect + exit
-
-            case 'momo':
-                $this->payWithMomo($payable);
-                return ''; // payWithMomo sẽ redirect + exit
+                return ''; // redirect + exit
 
             case 'cod':
                 return $this->payWithCod($payable, $couponId, $discountAmount);
 
             default:
+                // ✅ (4) đã xoá momo => nếu client gửi momo thì báo lỗi
                 $this->flash('error', 'Phương thức thanh toán không hợp lệ');
                 $this->redirect('index.php?controller=payment&action=checkout');
                 return '';
         }
     }
 
-    /* ======================================================
-     *   CÁC HÀM RIÊNG CHO TỪNG PHƯƠNG THỨC THANH TOÁN
-     * ====================================================== */
-
     /**
-     * Thanh toán bằng VNPay: build URL và redirect
+     * VNPay: build URL và redirect
      */
     private function payWithVnpay(int $totalAmount): void
     {
-        // ================== CẤU HÌNH VNPAY (SANDBOX) ==================
         $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-        // TODO: Sửa URL này cho đúng domain/thư mục thực tế của bạn
+        // TODO: sửa theo domain thật
         $vnp_Returnurl = "http://localhost/du-an-1-book-store/project/index.php?controller=payment&action=vnpayReturn";
 
-        // TODO: Thay 2 thông tin này bằng mã thật VNPAY cấp
+        // TODO: thay thông tin thật
         $vnp_TmnCode    = "7DN3KMIT";
         $vnp_HashSecret = "Y0OZ4UPLC8J4RSHAOVZO1SMZV066HF7C";
 
         $vnp_TxnRef    = time();
         $vnp_OrderInfo = "Thanh toán đơn hàng #" . $vnp_TxnRef;
         $vnp_OrderType = "other";
-        $vnp_Amount    = $totalAmount * 100; // VNPAY yêu cầu nhân 100
+        $vnp_Amount    = $totalAmount * 100;
         $vnp_Locale    = "vn";
-        $vnp_BankCode  = ""; // để trống: cho khách tự chọn
+        $vnp_BankCode  = "NCB";
         $vnp_IpAddr    = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
         $inputData = [
-            "vnp_Version"   => "2.1.0",
-            "vnp_TmnCode"   => $vnp_TmnCode,
-            "vnp_Amount"    => $vnp_Amount,
-            "vnp_Command"   => "pay",
-            "vnp_CreateDate"=> date('YmdHis'),
-            "vnp_CurrCode"  => "VND",
-            "vnp_IpAddr"    => $vnp_IpAddr,
-            "vnp_Locale"    => $vnp_Locale,
-            "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_OrderType" => $vnp_OrderType,
-            "vnp_ReturnUrl" => $vnp_Returnurl,
-            "vnp_TxnRef"    => $vnp_TxnRef,
+            "vnp_Version"    => "2.1.0",
+            "vnp_TmnCode"    => $vnp_TmnCode,
+            "vnp_Amount"     => $vnp_Amount,
+            "vnp_Command"    => "pay",
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CurrCode"   => "VND",
+            "vnp_IpAddr"     => $vnp_IpAddr,
+            "vnp_Locale"     => $vnp_Locale,
+            "vnp_OrderInfo"  => $vnp_OrderInfo,
+            "vnp_OrderType"  => $vnp_OrderType,
+            "vnp_ReturnUrl"  => $vnp_Returnurl,
+            "vnp_TxnRef"     => $vnp_TxnRef,
         ];
 
-        if (!empty($vnp_BankCode)) {
-            $inputData['vnp_BankCode'] = $vnp_BankCode;
-        }
+        if (!empty($vnp_BankCode)) $inputData['vnp_BankCode'] = $vnp_BankCode;
 
         ksort($inputData);
 
-        $query    = "";
+        $query = "";
         $hashData = "";
-        $i        = 0;
+        $i = 0;
 
         foreach ($inputData as $key => $value) {
-            if ($i == 1) {
-                $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
-            } else {
-                $hashData .= urlencode($key) . "=" . urlencode($value);
-                $i = 1;
-            }
+            if ($i == 1) $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
+            else { $hashData .= urlencode($key) . "=" . urlencode($value); $i = 1; }
             $query .= urlencode($key) . "=" . urlencode($value) . '&';
         }
 
@@ -315,83 +406,69 @@ public function selectShipping(): void
 
         if (!empty($vnp_HashSecret)) {
             $vnpSecureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-            $vnp_Url      .= 'vnp_SecureHash=' . $vnpSecureHash;
+            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
         }
-
-        // Thực tế: nên lưu đơn hàng trạng thái "pending" ở đây
 
         header('Location: ' . $vnp_Url);
         exit;
     }
 
     /**
-     * Tạo đơn hàng trong DB từ giỏ hiện tại sau khi thanh toán thành công
-     * Trả về ID đơn hàng trong DB, hoặc null nếu không tạo được
+     * Tạo đơn hàng sau khi VNPay success
      */
     private function createOrderAfterPayment(string $note = ''): ?int
     {
-        $cart = $_SESSION['cart'] ?? [];
-        if (empty($cart)) {
-            // Không còn giỏ => không tạo đơn được
-            return null;
-        }
+        $this->normalizeCartSession();
 
-        // Lấy user hiện tại
+        $cartRef = $_SESSION['cart'] ?? [];
+        if (empty($cartRef)) return null;
+
         $currentUser = $_SESSION['user'] ?? null;
-        if (!$currentUser || empty($currentUser['id'])) {
-            return null;
-        }
-
+        if (!$currentUser || empty($currentUser['id'])) return null;
         $userId = (int)$currentUser['id'];
 
-        // Lấy địa chỉ giao hàng (mặc định: phần tử đầu tiên)
         $addresses = UserModel::getAddresses($userId);
-        $shipping  = $addresses[0] ?? null;   // nếu hàm createFromCart cho phép null thì vẫn OK
+        $shipping  = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
 
-        // Nếu anh muốn bắt buộc phải có shipping thì có thể check ở đây
-        // if (!$shipping) { return null; }
+        if (!$shipping || empty($shipping['full_address'])) return null;
 
-        // 🔹 TẠO ĐƠN HÀNG TRONG DB
-        // Giả sử OrderModel::createFromCart:
-        // createFromCart(int $userId, ?array $shipping, array $cart, string $shippingStatus = 'pending', ?string $note = null): int
-        $couponId = $_SESSION['checkout_coupon']['coupon_id'] ?? null;
-        $discount = $_SESSION['checkout_coupon']['discount'] ?? 0;
+        $couponId = !empty($_SESSION['checkout_coupon']['coupon_id'])
+            ? (int)$_SESSION['checkout_coupon']['coupon_id']
+            : null;
+
+        $discount = !empty($_SESSION['checkout_coupon']['discount'])
+            ? (float)$_SESSION['checkout_coupon']['discount']
+            : 0.0;
 
         $orderId = OrderModel::createFromCart(
             $userId,
             $shipping,
-            $cart,
-            'pending',          // shipping_status ban đầu
-            $note,              // ghi chú: "Thanh toán VNPay/MoMo ..."
-            $couponId ? (int)$couponId : null,
-            (float)$discount
+            $cartRef,
+            'pending',
+            $note,
+            $couponId,
+            $discount
         );
 
         if ($orderId && $couponId) {
-            CouponModel::incrementUsage((int)$couponId);
+            CouponModel::incrementUsage($couponId);
         }
 
-        // Xoá giỏ sau khi tạo đơn
-        unset($_SESSION['cart']);
-        unset($_SESSION['checkout_coupon']);
+        unset($_SESSION['cart'], $_SESSION['checkout_coupon'], $_SESSION['checkout_shipping']);
 
-        return $orderId;
+        return $orderId ?: null;
     }
 
-
     /**
-     * VNPay redirect user về đây sau khi thanh toán xong
-     * URL: GET index.php?controller=payment&action=vnpayReturn
+     * VNPay return
      */
     public function vnpayReturn(): string
     {
-        $vnp_HashSecret = "Y0OZ4UPLC8J4RSHAOVZO1SMZV066HF7C"; // phải trùng với payWithVnpay()
+        $vnp_HashSecret = "Y0OZ4UPLC8J4RSHAOVZO1SMZV066HF7C";
 
         $inputData = [];
         foreach ($_GET as $key => $value) {
-            if (substr($key, 0, 4) == "vnp_") {
-                $inputData[$key] = $value;
-            }
+            if (substr($key, 0, 4) == "vnp_") $inputData[$key] = $value;
         }
 
         $vnp_SecureHash = $inputData['vnp_SecureHash'] ?? '';
@@ -399,243 +476,112 @@ public function selectShipping(): void
 
         ksort($inputData);
         $hashData = "";
-        $i        = 0;
+        $i = 0;
         foreach ($inputData as $key => $value) {
-            if ($i == 1) {
-                $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
-            } else {
-                $hashData .= urlencode($key) . "=" . urlencode($value);
-                $i = 1;
-            }
+            if ($i == 1) $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
+            else { $hashData .= urlencode($key) . "=" . urlencode($value); $i = 1; }
         }
 
         $secureHashCheck = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        $isValid   = ($secureHashCheck === $vnp_SecureHash);
-        $rspCode   = $inputData['vnp_ResponseCode'] ?? null; // "00" = thành công
-        $txnRef    = $inputData['vnp_TxnRef']       ?? null; // mã giao dịch bên VNPay
-        $amount    = $inputData['vnp_Amount']       ?? null;
+        $isValid = ($secureHashCheck === $vnp_SecureHash);
+        $rspCode = $inputData['vnp_ResponseCode'] ?? null;
+        $txnRef  = $inputData['vnp_TxnRef'] ?? null;
+        $amount  = $inputData['vnp_Amount'] ?? null;
 
-        $dbOrderId = null;
+        $dbOrderId  = null;
+        $orderItems = [];
 
         if ($isValid && $rspCode === '00') {
-            // 🔹 Tạo đơn hàng thật trong DB từ giỏ
             $dbOrderId = $this->createOrderAfterPayment(
                 'Thanh toán VNPay thành công - mã giao dịch: ' . $txnRef
             );
 
-            $message = "Thanh toán VNPay thành công.";
             if ($dbOrderId) {
-                $message .= " Mã đơn hàng của bạn: #" . htmlspecialchars((string)$dbOrderId);
+                $orderItems = OrderModel::getItemsByOrderId((int)$dbOrderId);
             }
-            $success = true;
-        } else {
-            $message = "Thanh toán VNPay thất bại hoặc dữ liệu không hợp lệ.";
-            $success = false;
+
+            $message = "Thanh toán VNPay thành công.";
+            if ($dbOrderId) $message .= " Mã đơn hàng của bạn: #" . (int)$dbOrderId;
+
+            return $this->render('payment/vnpay_return', [
+                'success'    => true,
+                'message'    => $message,
+                'orderId'    => $dbOrderId ?: $txnRef,
+                'amount'     => $amount,
+                'txnRef'     => $txnRef,
+                'orderItems' => $orderItems,
+            ]);
         }
 
         return $this->render('payment/vnpay_return', [
-            'success'   => $success,
-            'message'   => $message,
-            'orderId'   => $dbOrderId ?: $txnRef, // ưu tiên ID DB, fallback mã giao dịch
-            'amount'    => $amount,
-            'txnRef'    => $txnRef,
+            'success'    => false,
+            'message'    => "Thanh toán VNPay thất bại hoặc dữ liệu không hợp lệ.",
+            'orderId'    => $txnRef,
+            'amount'     => $amount,
+            'txnRef'     => $txnRef,
+            'orderItems' => [],
         ]);
     }
 
-
     /**
-     * Thanh toán bằng MoMo: gọi API create và redirect payUrl
+     * COD
      */
-    private function payWithMomo(int $totalAmount): void
+    private function payWithCod(int $totalAmount, ?int $couponId = null, float $discountAmount = 0.0): string
     {
-        $endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
+        $this->requireAuth();
 
-        // TODO: Thay 3 thông tin này bằng thông tin thật từ MoMo Partner
-        $partnerCode = "MOMOXXXX";
-        $accessKey   = "ACCESS_KEY_DEMO";
-        $secretKey   = "SECRET_KEY_DEMO";
+        $hydrated  = $this->hydrateCartFromSession();
+        $cartItems = $hydrated['items'];
 
-        $orderId   = time() . "";
-        $requestId = time() . "";
-        $orderInfo = "Thanh toán đơn hàng #" . $orderId;
-
-        // TODO: Sửa đúng URL project của bạn
-        $redirectUrl = "http://localhost/du-an-1-book-store/project/index.php?controller=payment&action=momoReturn";
-        $ipnUrl      = "http://localhost/du-an-1-book-store/project/index.php?controller=payment&action=momoIpn";
-
-        $amount    = (string)$totalAmount;
-        $extraData = "";
-
-        $requestType = "captureWallet";
-
-        $rawHash = "accessKey=" . $accessKey
-            . "&amount=" . $amount
-            . "&extraData=" . $extraData
-            . "&ipnUrl=" . $ipnUrl
-            . "&orderId=" . $orderId
-            . "&orderInfo=" . $orderInfo
-            . "&partnerCode=" . $partnerCode
-            . "&redirectUrl=" . $redirectUrl
-            . "&requestId=" . $requestId
-            . "&requestType=" . $requestType;
-
-        $signature = hash_hmac("sha256", $rawHash, $secretKey);
-
-        $data = [
-            'partnerCode' => $partnerCode,
-            'partnerName' => 'BookStore',
-            'storeId'     => 'BookStore',
-            'requestId'   => $requestId,
-            'amount'      => $amount,
-            'orderId'     => $orderId,
-            'orderInfo'   => $orderInfo,
-            'redirectUrl' => $redirectUrl,
-            'ipnUrl'      => $ipnUrl,
-            'lang'        => 'vi',
-            'extraData'   => $extraData,
-            'requestType' => $requestType,
-            'signature'   => $signature,
-        ];
-
-        $ch = curl_init($endpoint);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($data)),
-        ]);
-
-        $result = curl_exec($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($result === false) {
-            $this->flash('error', 'Không kết nối được tới MoMo: ' . $curlError);
-            $this->redirect('index.php?controller=payment&action=checkout');
-            return;
+        if (empty($cartItems)) {
+            $this->flash('error', 'Giỏ hàng đang trống');
+            $this->redirect('index.php?controller=cart&action=index');
+            return '';
         }
 
-        $jsonResult = json_decode($result, true);
-        if (!empty($jsonResult['payUrl'])) {
-            header('Location: ' . $jsonResult['payUrl']);
-            exit;
+        $currentUser = $_SESSION['user'] ?? null;
+        $userId = (int)($currentUser['id'] ?? 0);
+        if ($userId <= 0) {
+            $this->flash('error', 'Vui lòng đăng nhập trước khi thanh toán');
+            $this->redirect('index.php?controller=auth&action=login');
+            return '';
         }
 
-        $message = $jsonResult['message'] ?? 'Không tạo được link thanh toán MoMo';
-        $this->flash('error', 'MoMo lỗi: ' . $message);
-        $this->redirect('index.php?controller=payment&action=checkout');
-    }
+        $addresses = UserModel::getAddresses($userId);
+        $shipping  = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
 
-    /**
-     * MoMo redirect về sau khi thanh toán xong
-     * URL: GET index.php?controller=payment&action=momoReturn
-     */
-    public function momoReturn(): string
-    {
-        $resultCode = $_GET['resultCode'] ?? null; // 0 = thành công
-        $orderIdGw  = $_GET['orderId']    ?? null; // mã order bên MoMo (anh gửi từ payWithMomo)
-        $amount     = $_GET['amount']     ?? null;
-        $message    = $_GET['message']    ?? '';
-
-        $dbOrderId = null;
-
-        if ($resultCode === '0') {
-            // 🔹 Tạo đơn hàng thật trong DB từ giỏ
-            $dbOrderId = $this->createOrderAfterPayment(
-                'Thanh toán MoMo thành công - mã giao dịch: ' . $orderIdGw
-            );
-
-            $success = true;
-            $msg     = "Thanh toán MoMo thành công.";
-            if ($dbOrderId) {
-                $msg .= " Mã đơn hàng của bạn: #" . htmlspecialchars((string)$dbOrderId);
-            }
-        } else {
-            $success = false;
-            $msg     = "Thanh toán MoMo thất bại: " . htmlspecialchars($message);
+        if (!$shipping || empty($shipping['full_address'])) {
+            $this->flash('error', 'Vui lòng cập nhật địa chỉ giao hàng trước khi thanh toán');
+            $this->redirect('index.php?controller=account&action=address');
+            return '';
         }
 
-        return $this->render('payment/momo_return', [
-            'success'  => $success,
-            'message'  => $msg,
-            'orderId'  => $dbOrderId ?: $orderIdGw, // ưu tiên ID DB
-            'amount'   => $amount,
-            'orderIdGw'=> $orderIdGw,
+        $this->normalizeCartSession();
+        $cartRef = $_SESSION['cart'] ?? [];
+
+        $orderId = OrderModel::createFromCart(
+            $userId,
+            $shipping,
+            $cartRef,
+            'pending',
+            'Thanh toán COD',
+            $couponId,
+            $discountAmount
+        );
+
+        if ($orderId && $couponId) {
+            CouponModel::incrementUsage((int)$couponId);
+        }
+
+        unset($_SESSION['cart'], $_SESSION['checkout_shipping'], $_SESSION['checkout_coupon']);
+
+        return $this->render('payment/cod_success', [
+            'orderId'    => $orderId,
+            'amount'     => $totalAmount,
+            'orderItems' => $cartItems,
+            'shipping'   => $shipping,
+            'user'       => $currentUser,
         ]);
     }
-
-
-    /**
-     * Thanh toán khi nhận hàng (COD)
-     */
-/**
- * Thanh toán khi nhận hàng (COD)
- */
-private function payWithCod(int $totalAmount, ?int $couponId = null, float $discountAmount = 0.0): string
-{
-    // 1. LẤY GIỎ HÀNG
-    $cart = $_SESSION['cart'] ?? [];
-    if (empty($cart)) {
-        $this->flash('error', 'Giỏ hàng đang trống');
-        $this->redirect('index.php?controller=cart&action=index');
-        return '';
-    }
-
-    // 2. LẤY USER HIỆN TẠI
-    $currentUser = $_SESSION['user'] ?? null;
-    if (!$currentUser || empty($currentUser['id'])) {
-        $this->flash('error', 'Vui lòng đăng nhập trước khi thanh toán');
-        $this->redirect('index.php?controller=auth&action=login');
-        return '';
-    }
-
-    $userId = (int)$currentUser['id'];
-
-    // 3. LẤY ĐỊA CHỈ GIAO HÀNG
-    // 👉 ƯU TIÊN ĐỊA CHỈ ĐÃ CHỌN Ở CHECKOUT (checkout_shipping)
-    $addresses = UserModel::getAddresses($userId);
-    $shipping  = $_SESSION['checkout_shipping'] ?? ($addresses[0] ?? null);
-
-    if (!$shipping) {
-        $this->flash('error', 'Vui lòng cập nhật địa chỉ giao hàng trước khi thanh toán');
-        // Lưu ý: action là "address" cho đúng với route anh đang dùng
-        $this->redirect('index.php?controller=account&action=address');
-        return '';
-    }
-
-    // 4. TẠO ĐƠN HÀNG TRONG DB
-    $orderId = OrderModel::createFromCart(
-        $userId,
-        $shipping,
-        $cart,
-        'pending',              // shipping_status ban đầu
-        'Thanh toán COD',       // ghi chú
-        $couponId,
-        $discountAmount
-    );
-
-    if ($orderId && $couponId) {
-        CouponModel::incrementUsage((int)$couponId);
-    }
-
-    // 5. LẤY DANH SÁCH SẢN PHẨM TRONG ĐƠN VỪA TẠO
-    $orderItems = OrderModel::getOrderItems($orderId);
-
-    // 6. XOÁ GIỎ HÀNG + ĐỊA CHỈ TẠM TRONG SESSION
-    unset($_SESSION['cart']);
-    unset($_SESSION['checkout_shipping']);
-    unset($_SESSION['checkout_coupon']);
-
-    // 7. RENDER VIEW THÀNH CÔNG
-    return $this->render('payment/cod_success', [
-        'orderId'    => $orderId,
-        'amount'     => $totalAmount,
-        'orderItems' => $orderItems,
-    ]);
-}
-
-
-
 }

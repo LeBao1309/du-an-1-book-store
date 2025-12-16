@@ -257,4 +257,63 @@ final class BookModel extends BaseModel
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+        /**
+     * Lấy variant rẻ nhất của 1 book (dùng để add-to-cart khi không chọn variant)
+     */
+    public static function getCheapestVariantId(int $bookId): int
+    {
+        $sql = "
+            SELECT id
+            FROM book_variants
+            WHERE book_id = ?
+            ORDER BY COALESCE(NULLIF(sale_price, 0), price) ASC, id ASC
+            LIMIT 1
+        ";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$bookId]);
+        $id = (int)$stmt->fetchColumn();
+        return $id > 0 ? $id : 0;
+    }
+
+    /**
+     * Hydrate giỏ hàng theo variant_ids (lấy title/format/ảnh/giá THỰC từ DB)
+     */
+    public static function getCartItemsByVariantIds(array $variantIds): array
+    {
+        if (empty($variantIds)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($variantIds), '?'));
+
+        $sql = "
+            SELECT
+                bv.id AS variant_id,
+                bv.book_id,
+                bv.format,
+                CAST(COALESCE(NULLIF(bv.sale_price, 0), bv.price) AS UNSIGNED) AS unit_price,
+                b.title,
+                img.image_url
+            FROM book_variants bv
+            JOIN books b ON b.id = bv.book_id
+            LEFT JOIN book_images img
+                ON img.book_id = b.id AND img.sort_order = 0
+            WHERE bv.id IN ($placeholders)
+        ";
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute(array_values($variantIds));
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Kiểm tra variant có thuộc book không
+     */
+    public static function isVariantOfBook(int $variantId, int $bookId): bool
+    {
+        $sql = "SELECT COUNT(*) FROM book_variants WHERE id = ? AND book_id = ?";
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([$variantId, $bookId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
 }
