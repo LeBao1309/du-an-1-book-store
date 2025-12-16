@@ -2,7 +2,7 @@
 // views/payment/cod_success.php
 ?>
 <div class="container my-5">
-  <h1 class="mb-4">Đặt hàng thành công</h1>
+  <h1 class="mb-4">Đặt hàng thành công</h1> 
 
   <div class="alert alert-success">
     Đơn hàng của bạn đã được tạo với hình thức
@@ -35,8 +35,10 @@
       <div class="card-header">
         Sản phẩm trong đơn hàng
       </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
+
+      <!-- ✅ TĂNG LỀ: bỏ p-0, thêm padding cho khu vực table -->
+      <div class="card-body">
+        <div class="table-responsive px-2 px-md-3 py-2">
           <table class="table align-middle mb-0">
             <thead>
               <tr>
@@ -60,12 +62,12 @@
                   // Ảnh sách
                   $rawImage = $item['image_url'] ?? '';
                   if (!empty($rawImage)) {
-                      $imageSrc = (isset($ASSET) ? $ASSET . '/' : '') . ltrim($rawImage, '/');
+                    $imageSrc = (isset($ASSET) ? $ASSET . '/' : '') . ltrim($rawImage, '/');
                   } else {
-                      // fallback ảnh mặc định
-                      $imageSrc = isset($ASSET)
-                        ? $ASSET . '/img/placeholder-book.png'
-                        : '/assets/img/placeholder-book.png';
+                    // fallback ảnh mặc định
+                    $imageSrc = isset($ASSET)
+                      ? $ASSET . '/img/placeholder-book.png'
+                      : '/assets/img/placeholder-book.png';
                   }
                 ?>
                 <tr>
@@ -73,23 +75,19 @@
                     <div class="d-flex align-items-center">
                       <img
                         src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
-                        alt="<?= htmlspecialchars($bookTitle) ?>"
+                        alt="<?= htmlspecialchars($bookTitle, ENT_QUOTES, 'UTF-8') ?>"
                         style="width:60px; height:80px; object-fit:cover; margin-right:12px; border-radius:4px;"
                       >
                       <div>
-                        <!-- TÊN SẢN PHẨM -->
                         <div style="font-weight: 600;">
-                          <?= htmlspecialchars($bookTitle) ?>
+                          <?= htmlspecialchars($bookTitle, ENT_QUOTES, 'UTF-8') ?>
                         </div>
 
-                        <!-- THÔNG TIN PHỤ (ví dụ loại bìa) -->
-                        <?php if ($format): ?>
+                        <?php if (!empty($format)): ?>
                           <div class="text-muted" style="font-size: 13px;">
-                            Loại bìa: <?= htmlspecialchars($format) ?>
+                            Loại bìa: <?= htmlspecialchars($format, ENT_QUOTES, 'UTF-8') ?>
                           </div>
                         <?php endif; ?>
-
-                        <!-- Nếu sau này anh cần thêm tác giả, mã sách... có thể thêm ở đây -->
                       </div>
                     </div>
                   </td>

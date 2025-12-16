@@ -2,31 +2,31 @@ USE du_an_1_book_store;
 
 -- ===============================================================
 -- 1. LÀM SẠCH DỮ LIỆU CŨ (TRUNCATE)
--- ===============================================================
-SET FOREIGN_KEY_CHECKS = 0;
+-- -- ===============================================================
+-- SET FOREIGN_KEY_CHECKS = 0;
 
-TRUNCATE TABLE payment;
-TRUNCATE TABLE order_items;
-TRUNCATE TABLE orders;
-TRUNCATE TABLE coupons; -- Nếu có
+-- TRUNCATE TABLE payment;
+-- TRUNCATE TABLE order_items;
+-- TRUNCATE TABLE orders;
+-- TRUNCATE TABLE coupons; -- Nếu có
 
-TRUNCATE TABLE wishlist;
-TRUNCATE TABLE comments;
+-- TRUNCATE TABLE wishlist;
+-- TRUNCATE TABLE comments;
 
-TRUNCATE TABLE user_address;
-TRUNCATE TABLE users;
+-- TRUNCATE TABLE user_address;
+-- TRUNCATE TABLE users;
 
-TRUNCATE TABLE book_images;
-TRUNCATE TABLE book_variants;
-TRUNCATE TABLE book_publisher;
-TRUNCATE TABLE book_authors;
-TRUNCATE TABLE books;
+-- TRUNCATE TABLE book_images;
+-- TRUNCATE TABLE book_variants;
+-- TRUNCATE TABLE book_publisher;
+-- TRUNCATE TABLE book_authors;
+-- TRUNCATE TABLE books;
 
-TRUNCATE TABLE authors;
-TRUNCATE TABLE publisher;
-TRUNCATE TABLE categories;
+-- TRUNCATE TABLE authors;
+-- TRUNCATE TABLE publisher;
+-- TRUNCATE TABLE categories;
 
-SET FOREIGN_KEY_CHECKS = 1;
+-- SET FOREIGN_KEY_CHECKS = 1;
 
 -- ===============================================================
 -- 2. INSERT DANH MỤC (CATEGORIES)

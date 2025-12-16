@@ -73,31 +73,68 @@ final class OrderModel extends BaseModel
             throw new \RuntimeException('Giỏ hàng trống, không thể tạo đơn.');
         }
 
+        // Chuẩn hoá input cart => variant_id => qty
+        // chấp nhận cả trường hợp cart đang là: [variant_id => ['variant_id','quantity']]
+        $variantQty = [];
+        foreach ($cart as $k => $item) {
+            if (is_array($item) && isset($item['variant_id'])) {
+                $vid = (int)$item['variant_id'];
+                $qty = (int)($item['quantity'] ?? 0);
+            } else {
+                // fallback: nếu ai đó truyền kiểu lạ
+                $vid = (int)$k;
+                $qty = is_array($item) ? (int)($item['quantity'] ?? 0) : 0;
+            }
+            if ($vid > 0 && $qty > 0) $variantQty[$vid] = $qty;
+        }
+
+        if (empty($variantQty)) {
+            throw new \RuntimeException('Giỏ hàng thiếu variant_id hợp lệ.');
+        }
+
+        // Địa chỉ
+        $userAddressId   = $shipping['id'] ?? null;
+        $shippingPhone   = $shipping['shipping_phone'] ?? null;
+        $shippingAddress = $shipping['full_address']   ?? null;
+
+        if (empty($shippingAddress)) {
+            throw new \RuntimeException('Thiếu địa chỉ giao hàng (shipping_address).');
+        }
+
         $pdo = self::db();
         $pdo->beginTransaction();
 
         try {
-            // 1. TÍNH TỔNG TIỀN
-            $totalAmount = 0;
+            // 1) LẤY GIÁ THỰC TỪ DB THEO VARIANT
+            $variantIds = array_keys($variantQty);
+            $placeholders = implode(',', array_fill(0, count($variantIds), '?'));
 
-            foreach ($cart as $item) {
-                $qty   = (int)($item['quantity'] ?? 0);
-                $price = (float)($item['price'] ?? 0);
-                if ($qty > 0 && $price >= 0) {
-                    $totalAmount += $qty * $price;
+            $sqlPrice = "
+                SELECT
+                    id AS variant_id,
+                    CAST(COALESCE(NULLIF(sale_price, 0), price) AS DECIMAL(18,2)) AS unit_price
+                FROM book_variants
+                WHERE id IN ($placeholders)
+            ";
+            $stmtPrice = $pdo->prepare($sqlPrice);
+            $stmtPrice->execute($variantIds);
+            $rows = $stmtPrice->fetchAll();
+
+            $priceMap = [];
+            foreach ($rows as $r) {
+                $priceMap[(int)$r['variant_id']] = (float)$r['unit_price'];
+            }
+
+            // 2) TÍNH TỔNG
+            $totalAmount = 0.0;
+            foreach ($variantQty as $vid => $qty) {
+                if (!isset($priceMap[$vid])) {
+                    throw new \RuntimeException('Variant không tồn tại: ' . $vid);
                 }
+                $totalAmount += $priceMap[$vid] * $qty;
             }
 
-            // 2. LẤY THÔNG TIN ĐỊA CHỈ
-            $userAddressId   = $shipping['id'] ?? null;
-            $shippingPhone   = $shipping['shipping_phone'] ?? null;
-            $shippingAddress = $shipping['full_address']   ?? null;
-
-            if (empty($shippingAddress)) {
-                throw new \RuntimeException('Thiếu địa chỉ giao hàng (shipping_address).');
-            }
-
-            // 3. INSERT VÀO BẢNG orders
+            // 3) INSERT orders
             $sqlOrder = "
                 INSERT INTO orders (
                     user_id,
@@ -124,78 +161,53 @@ final class OrderModel extends BaseModel
                     NOW()
                 )
             ";
-
             $stmt = $pdo->prepare($sqlOrder);
             $stmt->execute([
-                ':user_id'         => $userId,
-                ':user_address_id' => $userAddressId,
-                ':total'           => $totalAmount,
-                ':coupon_id'       => $couponId,
-                ':discount_amount' => $discountAmount,
-                ':shipping_status' => $shippingStatus,
-                ':shipping_address'=> $shippingAddress,
-                ':shipping_phone'  => $shippingPhone,
-                ':note'            => $note,
+                ':user_id'          => $userId,
+                ':user_address_id'  => $userAddressId,
+                ':total'            => $totalAmount,
+                ':coupon_id'        => $couponId,
+                ':discount_amount'  => $discountAmount,
+                ':shipping_status'  => $shippingStatus,
+                ':shipping_address' => $shippingAddress,
+                ':shipping_phone'   => $shippingPhone,
+                ':note'             => $note,
             ]);
 
             $orderId = (int)$pdo->lastInsertId();
 
-            // 4. INSERT CÁC DÒNG order_items
+            // 4) INSERT order_items
             $sqlItem = "
                 INSERT INTO order_items (
-                    order_id,
-                    variant_id,
-                    quantity,
-                    price,
-                    subtotal
+                    order_id, variant_id, quantity, price, subtotal
                 ) VALUES (
-                    :order_id,
-                    :variant_id,
-                    :quantity,
-                    :price,
-                    :subtotal
+                    :order_id, :variant_id, :quantity, :price, :subtotal
                 )
             ";
             $stmtItem = $pdo->prepare($sqlItem);
 
-            foreach ($cart as $item) {
-            $qty   = (int)($item['quantity'] ?? 0);
-            $price = (float)($item['price']    ?? 0);
-            $sub   = $qty * $price;
+            foreach ($variantQty as $vid => $qty) {
+                $price = (float)$priceMap[$vid];
+                $sub   = $price * $qty;
 
-            // 🔹 LẤY variantId ĐÚNG THEO CẤU TRÚC GIỎ HÀNG
-            // ƯU TIÊN 'variant_id', nếu không có thì dùng 'id' (hoặc key khác anh đang dùng)
-            $variantId = 0;
-
-            if (isset($item['variant_id'])) {
-                $variantId = (int)$item['variant_id'];
-            } elseif (isset($item['id'])) {       // nếu cart đang dùng 'id'
-                $variantId = (int)$item['id'];
-            } elseif (isset($item['book_id'])) {  // hoặc 'book_id' chẳng hạn
-                $variantId = (int)$item['book_id'];
+                $stmtItem->execute([
+                    ':order_id'   => $orderId,
+                    ':variant_id' => $vid,
+                    ':quantity'   => $qty,
+                    ':price'      => $price,
+                    ':subtotal'   => $sub,
+                ]);
             }
-
-            if ($variantId <= 0 || $qty <= 0) {
-                continue;
-            }
-
-            $stmtItem->execute([
-                ':order_id'   => $orderId,
-                ':variant_id' => $variantId,
-                ':quantity'   => $qty,
-                ':price'      => $price,
-                ':subtotal'   => $sub,
-            ]);
-        }
-
 
             $pdo->commit();
             return $orderId;
+
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
     }
+
     
     /**
      * Kiểm tra user đã mua sản phẩm (book_id) chưa
@@ -261,10 +273,45 @@ final class OrderModel extends BaseModel
                   AND user_id = :uid 
                   AND shipping_status = 'shipped'";
         
-        $stmt = self::db()->prepare($sql);
+        $stmt = self::db()->prepare($sql); 
         return $stmt->execute([
             ':id'  => $orderId, 
             ':uid' => $userId
         ]);
     }
+
+        /**
+     * Lấy danh sách sản phẩm trong đơn theo order_id (dùng cho COD/VNPay success page)
+     */
+/**
+ * Lấy danh sách sản phẩm trong đơn theo order_id (dùng cho COD/VNPay success page)
+ */
+    public static function getItemsByOrderId(int $orderId): array
+    {
+        if ($orderId <= 0) return [];
+
+        $sql = "
+            SELECT
+                oi.quantity,
+                oi.price AS price,
+                oi.subtotal AS subtotal,
+                b.title,
+                bv.format,
+                img.image_url
+            FROM order_items oi
+            JOIN book_variants bv ON oi.variant_id = bv.id
+            JOIN books b ON bv.book_id = b.id
+            LEFT JOIN book_images img 
+                ON b.id = img.book_id AND img.sort_order = 0
+            WHERE oi.order_id = :oid
+        ";
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute([':oid' => $orderId]);
+        return $stmt->fetchAll();
+    }
+
 }
+
+
+ 
