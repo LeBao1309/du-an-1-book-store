@@ -23,7 +23,7 @@ abstract class BaseModel
             $DB_PORT = getenv('DB_PORT') ?: '3306';
             $DB_NAME = getenv('DB_NAME') ?: 'du_an_1_book_store';
             $DB_USER = getenv('DB_USER') ?: 'root';
-            $DB_PASS = getenv('DB_PASS') ?: '';
+            $DB_PASS = getenv('DB_PASS') ?: 'root123';
 
             $dsn = "mysql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME};charset=utf8mb4";
             

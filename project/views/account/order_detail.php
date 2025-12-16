@@ -61,15 +61,12 @@
                             <tbody>
                                 <?php foreach ($items as $item): ?>
                                     <?php 
-                                        // 1. Lấy đường dẫn ảnh từ Database
                                         $dbPath = $item['image_url'] ?? '';
-
-                                        // 2. CẤU HÌNH ĐƯỜNG DẪN GỐC (Đã thêm public/)
-                                        $baseUrl = '/duan1/du-an-1-book-store/project/public/';
-
-                                        // 3. Nối đường dẫn
+                                        // Dựa vào $ASSET nếu có, fallback placeholder
                                         if (!empty($dbPath)) {
-                                            $imgSrc = $baseUrl . $dbPath;
+                                            // Nếu đã là URL tuyệt đối thì giữ nguyên, ngược lại nối với ASSET/public
+                                            $isFull = str_starts_with($dbPath, 'http://') || str_starts_with($dbPath, 'https://');
+                                            $imgSrc = $isFull ? $dbPath : ($ASSET . '/' . ltrim($dbPath, '/'));
                                         } else {
                                             $imgSrc = 'https://dummyimage.com/80x120/eee/999?text=No+Img';
                                         }

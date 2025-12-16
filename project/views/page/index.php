@@ -4,6 +4,30 @@ $bestSellers = $bestSellers ?? [];
 $discountedBooks = $discountedBooks ?? [];
 $categories = $categories ?? [];
 ?>
+<style>
+@media (max-width: 992px) {
+  .hero-inner { flex-direction: column; gap: 20px; text-align: center; }
+  .hero-text { align-items: center; }
+  .hero-actions { justify-content: center; flex-wrap: wrap; }
+  .categories-wrapper { gap: 12px; }
+  .categories-slider { gap: 12px; }
+  .grid.cards-5 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
+}
+@media (max-width: 768px) {
+  .hero-inner { padding: 20px 14px; }
+  .hero-text h1 { font-size: 28px; line-height: 1.3; }
+  .hero-text p { font-size: 14px; }
+  .hero-actions { flex-direction: column; gap: 10px; width: 100%; }
+  .hero-actions .btn { width: 100%; text-align: center; }
+  .hero-art img { max-width: 240px; }
+  .categories-wrapper { gap: 8px; }
+  .cat-nav-btn { width: 34px; height: 34px; font-size: 18px; }
+  .grid.cards-5 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .card-img-container img { height: 180px; object-fit: cover; }
+  .section { padding: 32px 0; }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+</style>
 
 <section class="hero">
   <div class="container hero-inner">

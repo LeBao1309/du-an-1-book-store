@@ -20,6 +20,8 @@ if (!function_exists('wd_status_badge')) {
             case 'processing':
                 return '<span class="badge badge-warning">Đang xử lý</span>';
             case 'shipped':
+                return '<span class="badge badge-info">Đang giao</span>';
+            case 'delivered':
                 return '<span class="badge badge-success">Đã giao</span>';
             case 'cancelled':
                 return '<span class="badge badge-danger">Đã hủy</span>';
@@ -219,7 +221,8 @@ $currentOrderId = $hasDetail ? (int)$order['id'] : 0;
         <option value="">Tất cả</option>
         <option value="pending"    <?= ($filters['shipping_status'] ?? '')==='pending'   ?'selected':''; ?>>Chờ xử lý</option>
         <option value="processing" <?= ($filters['shipping_status'] ?? '')==='processing'?'selected':''; ?>>Đang xử lý</option>
-        <option value="shipped"    <?= ($filters['shipping_status'] ?? '')==='shipped'   ?'selected':''; ?>>Đã giao</option>
+        <option value="shipped"    <?= ($filters['shipping_status'] ?? '')==='shipped'   ?'selected':''; ?>>Đang giao</option>
+        <option value="delivered"  <?= ($filters['shipping_status'] ?? '')==='delivered' ?'selected':''; ?>>Đã giao</option>
         <option value="cancelled"  <?= ($filters['shipping_status'] ?? '')==='cancelled' ?'selected':''; ?>>Đã hủy</option>
       </select>
     </div>
@@ -355,15 +358,22 @@ $currentOrderId = $hasDetail ? (int)$order['id'] : 0;
       <?php if ($lastPage > 1): ?>
         <div class="admin-pagination">
           <?php for ($p = 1; $p <= $lastPage; $p++): ?>
+            <?php
+              $qs = http_build_query([
+                'c' => 'orders',
+                'a' => 'index',
+                'page' => $p,
+                'keyword' => $filters['keyword'] ?? '',
+                'shipping_status' => $filters['shipping_status'] ?? '',
+                'payment_status' => $filters['payment_status'] ?? '',
+                'payment_method' => $filters['payment_method'] ?? '',
+                'channel' => $filters['channel'] ?? '',
+                'from_date' => $filters['from_date'] ?? '',
+                'to_date' => $filters['to_date'] ?? '',
+              ]);
+            ?>
             <a class="page-link <?= $p === (int)$page ? 'active' : ''; ?>"
-               href="index.php?c=orders&a=index&page=<?= $p; ?>
-               &keyword=<?= urlencode($filters['keyword'] ?? ''); ?>
-               &shipping_status=<?= urlencode($filters['shipping_status'] ?? ''); ?>
-               &payment_status=<?= urlencode($filters['payment_status'] ?? ''); ?>
-               &payment_method=<?= urlencode($filters['payment_method'] ?? ''); ?>
-               &channel=<?= urlencode($filters['channel'] ?? ''); ?>
-               &from_date=<?= urlencode($filters['from_date'] ?? ''); ?>
-               &to_date=<?= urlencode($filters['to_date'] ?? ''); ?>">
+               href="index.php?<?= $qs; ?>">
               <?= $p; ?>
             </a>
           <?php endfor; ?>
@@ -488,7 +498,8 @@ $currentOrderId = $hasDetail ? (int)$order['id'] : 0;
                 <select name="shipping_status" id="shippingStatusSelect" class="wd-input" required>
                   <option value="pending"    <?= $shippingStat==='pending'   ?'selected':''; ?>>Chờ xử lý</option>
                   <option value="processing" <?= $shippingStat==='processing'?'selected':''; ?>>Đang xử lý</option>
-                  <option value="shipped"    <?= $shippingStat==='shipped'   ?'selected':''; ?>>Đã giao</option>
+                  <option value="shipped"    <?= $shippingStat==='shipped'   ?'selected':''; ?>>Đang giao</option>
+                  <option value="delivered"  <?= $shippingStat==='delivered' ?'selected':''; ?>>Đã giao</option>
                   <option value="cancelled"  <?= $shippingStat==='cancelled' ?'selected':''; ?>>Đã hủy</option>
                 </select>
 

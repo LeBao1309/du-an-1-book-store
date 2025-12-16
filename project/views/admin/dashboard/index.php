@@ -139,12 +139,12 @@ $rangeText = [
 <div class="admin-chart-grid">
   <div class="admin-card">
     <h3 style="margin-top:0;font-size:15px;">Doanh thu theo tháng (đơn vị: triệu VND)</h3>
-    <canvas id="chartSales" height="140"></canvas>
+    <canvas id="chartSales" style="max-width:100%;height:auto;aspect-ratio:4/3;"></canvas>
   </div>
 
   <div class="admin-card">
     <h3 style="margin-top:0;font-size:15px;">Trạng thái đơn hàng</h3>
-    <canvas id="chartStatus" height="140"></canvas>
+    <canvas id="chartStatus" style="max-width:100%;height:auto;aspect-ratio:4/3;"></canvas>
   </div>
 </div>
 
@@ -265,13 +265,21 @@ $rangeText = [
 </div>
 
 <script>
+  // Responsive helper: resize charts on container change
+  function resizeCharts() {
+    if (chartSalesInstance) chartSalesInstance.resize();
+    if (chartStatusInstance) chartStatusInstance.resize();
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(resizeCharts));
+
   // Bar chart doanh thu
   const salesLabels = <?= json_encode($labels, JSON_UNESCAPED_UNICODE) ?>;
   const salesData   = <?= json_encode($values) ?>;
 
   const ctxSales = document.getElementById('chartSales');
+  let chartSalesInstance = null;
   if (ctxSales) {
-    new Chart(ctxSales, {
+    chartSalesInstance = new Chart(ctxSales, {
       type: 'bar',
       data: {
         labels: salesLabels,
@@ -292,8 +300,9 @@ $rangeText = [
   const statusData   = <?= json_encode($donutValues) ?>;
 
   const ctxStatus = document.getElementById('chartStatus');
+  let chartStatusInstance = null;
   if (ctxStatus) {
-    new Chart(ctxStatus, {
+    chartStatusInstance = new Chart(ctxStatus, {
       type: 'doughnut',
       data: {
         labels: statusLabels,

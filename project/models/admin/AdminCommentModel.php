@@ -68,7 +68,27 @@ final class AdminCommentModel extends BaseModel
 
     public static function delete(int $id): bool
     {
-        $stmt = self::db()->prepare("DELETE FROM comments WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $pdo = self::db();
+        $pdo->beginTransaction();
+        try {
+            $bookIdStmt = $pdo->prepare("SELECT book_id FROM comments WHERE id = :id FOR UPDATE");
+            $bookIdStmt->execute([':id' => $id]);
+            $bookId = (int)$bookIdStmt->fetchColumn();
+
+            $delStmt = $pdo->prepare("DELETE FROM comments WHERE id = :id");
+            $ok = $delStmt->execute([':id' => $id]);
+
+            if ($ok && $bookId > 0) {
+                require_once __DIR__ . '/../CommentModel.php';
+                CommentModel::recalculateBookRating($bookId);
+            }
+
+            $pdo->commit();
+            return $ok;
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            error_log('Delete comment failed: ' . $e->getMessage());
+            return false;
+        }
     }
 }

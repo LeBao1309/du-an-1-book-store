@@ -31,7 +31,7 @@ final class AdminQuestionModel extends BaseModel
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $base = "
-            FROM product_questions q
+            FROM questions q
             JOIN users u ON q.user_id = u.id
             JOIN books b ON q.book_id = b.id
             $whereSql
@@ -46,7 +46,7 @@ final class AdminQuestionModel extends BaseModel
 
         $sql = "
             SELECT q.*, u.name AS user_name, b.title AS book_title,
-                   (SELECT COUNT(*) FROM question_answers qa WHERE qa.question_id = q.id) AS answer_count
+                   (SELECT COUNT(*) FROM answers qa WHERE qa.question_id = q.id) AS answer_count
             $base
             ORDER BY q.created_at DESC
             LIMIT :limit OFFSET :offset
@@ -71,7 +71,7 @@ final class AdminQuestionModel extends BaseModel
     {
         $sql = "
             SELECT q.*, u.name AS user_name, b.title AS book_title
-            FROM product_questions q
+            FROM questions q
             JOIN users u ON q.user_id = u.id
             JOIN books b ON q.book_id = b.id
             WHERE q.id = :id
@@ -86,7 +86,7 @@ final class AdminQuestionModel extends BaseModel
     {
         $sql = "
             SELECT qa.*, u.name AS user_name, u.role
-            FROM question_answers qa
+            FROM answers qa
             JOIN users u ON qa.user_id = u.id
             WHERE qa.question_id = :qid
             ORDER BY qa.created_at ASC
@@ -102,7 +102,7 @@ final class AdminQuestionModel extends BaseModel
         $pdo->beginTransaction();
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO question_answers (question_id, user_id, answer, is_shop_answer, created_at)
+                INSERT INTO answers (question_id, user_id, answer, is_shop_answer, created_at)
                 VALUES (:qid, :uid, :ans, :shop, NOW())
             ");
             $stmt->execute([
@@ -113,7 +113,7 @@ final class AdminQuestionModel extends BaseModel
             ]);
 
             $pdo->prepare("
-                UPDATE product_questions
+                UPDATE questions
                 SET is_answered = 1, updated_at = NOW()
                 WHERE id = :qid
             ")->execute([':qid' => $questionId]);
@@ -129,7 +129,7 @@ final class AdminQuestionModel extends BaseModel
 
     public static function deleteQuestion(int $id): bool
     {
-        $stmt = self::db()->prepare("DELETE FROM product_questions WHERE id = :id");
+        $stmt = self::db()->prepare("DELETE FROM questions WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
@@ -138,7 +138,7 @@ final class AdminQuestionModel extends BaseModel
         $pdo = self::db();
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare("SELECT question_id FROM question_answers WHERE id = :id");
+            $stmt = $pdo->prepare("SELECT question_id FROM answers WHERE id = :id");
             $stmt->execute([':id' => $id]);
             $qid = (int)$stmt->fetchColumn();
             if (!$qid) {
@@ -146,15 +146,15 @@ final class AdminQuestionModel extends BaseModel
                 return false;
             }
 
-            $pdo->prepare("DELETE FROM question_answers WHERE id = :id")
+            $pdo->prepare("DELETE FROM answers WHERE id = :id")
                 ->execute([':id' => $id]);
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM question_answers WHERE question_id = :qid");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM answers WHERE question_id = :qid");
             $stmt->execute([':qid' => $qid]);
             $remain = (int)$stmt->fetchColumn();
 
             $pdo->prepare("
-                UPDATE product_questions
+                UPDATE questions
                 SET is_answered = :flag, updated_at = NOW()
                 WHERE id = :qid
             ")->execute([':flag' => $remain > 0 ? 1 : 0, ':qid' => $qid]);

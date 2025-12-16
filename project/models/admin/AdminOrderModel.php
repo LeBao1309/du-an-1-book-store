@@ -57,9 +57,14 @@ final class AdminOrderModel extends BaseModel
         $st->execute($params);
         $total = (int) $st->fetchColumn();
 
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        // Ghìm page trong khoảng hợp lệ để tránh offset vượt quá dữ liệu
+        $page = min(max(1, $page), $lastPage);
         $offset = ($page - 1) * $perPage;
 
         // Lấy danh sách
+        $limit  = (int)$perPage;
+        $offset = (int)$offset;
         $sql = "
             SELECT 
                 o.*,
@@ -71,23 +76,22 @@ final class AdminOrderModel extends BaseModel
             LEFT JOIN users u   ON u.id = o.user_id
             LEFT JOIN payment p ON p.order_id = o.id
             $whereSql
-            ORDER BY o.id DESC
-            LIMIT :limit OFFSET :offset
+            ORDER BY o.created_at DESC
+            LIMIT {$limit} OFFSET {$offset}
         ";
 
         $st = self::db()->prepare($sql);
         foreach ($params as $k => $v) {
             $st->bindValue($k, $v);
         }
-        $st->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
-        $st->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $st->execute();
+        $items = $st->fetchAll();
 
         return [
-            'items'     => $st->fetchAll(),
+            'items'     => $items,
             'total'     => $total,
             'page'      => $page,
-            'last_page' => max(1, (int) ceil($total / $perPage)),
+            'last_page' => $lastPage,
         ];
     }
 
@@ -151,15 +155,16 @@ final class AdminOrderModel extends BaseModel
             return true; // không có gì để làm
         }
 
-        // Không cho sửa đơn đã shipped hoặc đã cancelled
-        if (in_array($from, ['shipped', 'cancelled'], true)) {
+        // Không cho sửa đơn đã delivered hoặc đã cancelled
+        if (in_array($from, ['delivered', 'cancelled'], true)) {
             return false;
         }
 
         // Chỉ cho phép chuyển theo các rule đơn giản
         $allowed = [
             'pending'    => ['processing', 'cancelled'],
-            'processing' => ['shipped', 'cancelled'],
+            'processing' => ['shipped', 'delivered', 'cancelled'],
+            'shipped'    => ['delivered', 'cancelled'],
         ];
 
         if (!isset($allowed[$from]) || !in_array($toStatus, $allowed[$from], true)) {
@@ -179,11 +184,6 @@ final class AdminOrderModel extends BaseModel
             $cancelUserId = $adminId;
             // Nếu đã thanh toán thì chuyển sang refunded, nếu chưa thì để pending
             $newPaymentStatus = ($currentPaymentStatus === 'paid') ? 'refunded' : 'pending';
-        }
-
-        if ($toStatus === 'shipped' && $currentPaymentStatus !== 'paid') {
-            // Khi giao hàng xong mặc định coi như đã thu tiền
-            $newPaymentStatus = 'paid';
         }
 
         $sql = "

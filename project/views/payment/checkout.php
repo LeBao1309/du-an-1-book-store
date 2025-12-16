@@ -6,7 +6,22 @@
 // $totalQuantity, $totalAmount, $discountAmount, $finalTotal,
 // $appliedCoupon, $canCheckout, $csrf, $ASSET
 ?>
+<style>
+.checkout-page .card { border-radius: 14px; }
+.checkout-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.address-modal .css-modal-body { max-height: 60vh; overflow: auto; }
+@media (max-width: 768px) {
+  .checkout-page h1 { font-size: 22px; }
+  .checkout-page .card-body { padding: 14px; }
+  .checkout-page .table-responsive { border: 1px solid #e5e7eb; border-radius: 10px; }
+  .checkout-page th, .checkout-page td { white-space: nowrap; }
+  .checkout-actions { flex-direction: column; align-items: stretch; }
+  .checkout-actions .btn { width: 100%; }
+}
+</style>
+
 <div class="container my-5">
+  <div class="checkout-page">
   <h1 class="mb-4">Thanh toán đơn hàng</h1>
 
   <!-- Tóm tắt giỏ hàng -->
@@ -288,7 +303,7 @@
             </div>
           </div>
 
-          <div class="d-flex justify-content-between align-items-center">
+          <div class="checkout-actions">
             <a href="index.php?controller=cart&action=index" class="btn btn-outline-secondary">
               ⬅ Quay lại giỏ hàng
             </a>
@@ -300,5 +315,6 @@
         </form>
       <?php endif; ?>
     </div>
+  </div>
   </div>
 </div>

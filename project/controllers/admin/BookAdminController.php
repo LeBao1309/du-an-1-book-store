@@ -258,7 +258,7 @@ final class BookAdminController extends BaseAdminController
     {
         $this->checkCsrf();
         $bookId = (int)($_POST["book_id"] ?? 0);
-        $sort   = (int)($_POST["sort_order"] ?? 0);
+        $sortInput = trim((string)($_POST["sort_order"] ?? ''));
 
         // Cho phép nhập nhiều dòng URL (mỗi dòng một ảnh)
         $urlsRaw = $_POST["image_urls"] ?? $_POST["image_url"] ?? '';
@@ -269,7 +269,14 @@ final class BookAdminController extends BaseAdminController
             return $this->redirectBack();
         }
 
+        // Nếu không nhập sort, lấy tiếp nối max sort của book
+        $sort = is_numeric($sortInput) ? (int)$sortInput : AdminBookModel::nextSortOrder($bookId);
+        if ($sort < 0) {
+            $sort = AdminBookModel::nextSortOrder($bookId);
+        }
+
         foreach ($urls as $u) {
+            if ($u === '') continue;
             AdminBookModel::addImage($bookId, $u, $sort++);
         }
 

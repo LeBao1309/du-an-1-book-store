@@ -3,6 +3,21 @@
 // Controller truyền: 
 // $cartItems, $totalQuantity, $totalPrice, $csrf, $ASSET
 ?>
+<style>
+.cart-table-wrapper .table { min-width: 100%; }
+.cart-actions { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .cart-table-wrapper { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 10px; }
+  .cart-actions { flex-direction: column; align-items: stretch; }
+  .cart-actions .btn { width: 100%; }
+  .table thead { display: none; }
+  .table tbody tr { display: block; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+  .table tbody td { display: flex; justify-content: space-between; gap: 8px; padding: 6px 12px; }
+  .table tbody td:first-child { flex-direction: column; align-items: flex-start; }
+  .table tbody td:last-child { justify-content: flex-end; }
+  .table tbody td:before { content: attr(data-label); font-weight: 600; color: #475569; }
+}
+</style>
 
 <div class="container my-5">
   <h1 class="mb-4">Giỏ hàng của bạn</h1>
@@ -17,7 +32,7 @@
     </a>
 
   <?php else: ?>
-  <div class="card p-3 shadow-sm">
+  <div class="card p-3 shadow-sm cart-table-wrapper">
 
     <div class="table-responsive">
       <table class="table align-middle">
@@ -47,7 +62,7 @@
             $variantId = (int)$item['variant_id'];
           ?>
           <tr>
-            <td>
+            <td data-label="Sách">
               <div class="d-flex align-items-center">
                 <img
                   src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
@@ -68,11 +83,11 @@
               </div>
             </td>
 
-            <td class="text-end">
+            <td class="text-end" data-label="Đơn giá">
               <?= number_format($price) ?>₫
             </td>
 
-            <td class="text-center" style="width:160px;">
+            <td class="text-center" style="width:160px;" data-label="Số lượng">
               <div class="d-flex justify-content-center align-items-center gap-1">
 
                 <!-- GIẢM -->
@@ -110,11 +125,11 @@
               </div>
             </td>
 
-            <td class="text-end">
+            <td class="text-end" data-label="Thành tiền">
               <?= number_format($subtotal) ?>₫
             </td>
 
-            <td class="text-end">
+            <td class="text-end" data-label="Xóa">
               <a
                 href="index.php?controller=cart&action=remove&id=<?= $variantId ?>"
                 class="btn btn-sm btn-outline-danger"
@@ -128,7 +143,7 @@
       </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="d-flex justify-content-between align-items-center mt-3 cart-actions">
       <div class="d-flex gap-2">
         <a
           href="index.php?controller=cart&action=clear"
