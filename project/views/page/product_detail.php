@@ -1468,18 +1468,18 @@ textarea.form-control {
                 <button class="vote-btn upvote <?php echo isset($answer['user_vote']) && $answer['user_vote'] === 'upvote' ? 'active' : ''; ?>" 
                         data-answer-id="<?php echo $answer['id']; ?>" 
                         data-vote-type="upvote">
-                  👍 <span class="vote-count"><?php echo $answer['upvotes']; ?></span>
+                  👍 <span class="vote-count"><?php echo (int)($answer['upvotes'] ?? 0); ?></span>
                 </button>
                 <button class="vote-btn downvote <?php echo isset($answer['user_vote']) && $answer['user_vote'] === 'downvote' ? 'active' : ''; ?>" 
                         data-answer-id="<?php echo $answer['id']; ?>" 
                         data-vote-type="downvote">
-                  👎 <span class="vote-count"><?php echo $answer['downvotes']; ?></span>
+                  👎 <span class="vote-count"><?php echo (int)($answer['downvotes'] ?? 0); ?></span>
                 </button>
               </div>
               <?php else: ?>
               <div class="answer-votes">
-                <span class="vote-count-readonly">👍 <?php echo $answer['upvotes']; ?></span>
-                <span class="vote-count-readonly">👎 <?php echo $answer['downvotes']; ?></span>
+                <span class="vote-count-readonly">👍 <?php echo (int)($answer['upvotes'] ?? 0); ?></span>
+                <span class="vote-count-readonly">👎 <?php echo (int)($answer['downvotes'] ?? 0); ?></span>
               </div>
               <?php endif; ?>
             </div>
