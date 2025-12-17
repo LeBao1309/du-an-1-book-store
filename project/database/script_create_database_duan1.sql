@@ -207,23 +207,6 @@ CREATE TABLE book_variants (
 ) ENGINE=InnoDB;
 
 -- ===============================================================
--- 12. COMMENTS (đánh giá)
--- ===============================================================
-CREATE TABLE comments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    book_id INT NOT NULL,
-    user_id INT NOT NULL,
-    content TEXT NOT NULL,
-    rating TINYINT CHECK (rating BETWEEN 1 AND 5),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_book (book_id),
-    INDEX idx_user (user_id),
-    CONSTRAINT fk_comment_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- ===============================================================
 -- 13. WISHLIST
 -- ===============================================================
 CREATE TABLE wishlist (
@@ -296,6 +279,26 @@ CREATE TABLE payment (
     paid_at DATETIME NULL,
     UNIQUE KEY uk_order (order_id),
     CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ===============================================================
+-- 12. COMMENTS (đánh giá)
+-- ===============================================================
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+    user_id INT NOT NULL,
+    order_id INT NOT NULL,
+    content TEXT NOT NULL,
+    rating TINYINT CHECK (rating BETWEEN 1 AND 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_book (book_id),
+    INDEX idx_user (user_id),
+    INDEX idx_order (order_id),
+    CONSTRAINT fk_comment_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ===============================================================

@@ -554,31 +554,6 @@ INSERT INTO wishlist (id, book_id, user_id) VALUES
 (16, 1, 5), (17, 4, 5), (18, 12, 5), (19, 19, 5), (20, 55, 5);
 
 -- ===============================================================
--- 13. INSERT BÌNH LUẬN (COMMENTS)
--- ===============================================================
-INSERT INTO comments (id, book_id, user_id, content, rating) VALUES
-(1, 1, 2, 'Sách rất hay và dễ hiểu.', 5),
-(2, 1, 3, 'Khá thú vị, đáng đọc.', 4),
-(3, 3, 2, 'Nội dung sâu sắc.', 5),
-(4, 3, 4, 'Hơi khó đọc nhưng giá trị.', 4),
-(5, 5, 3, 'Một trong những cuốn hay nhất.', 5),
-(6, 7, 5, 'Cảm xúc và ý nghĩa.', 5),
-(7, 8, 2, 'Tác phẩm kinh điển, rất ấn tượng.', 5),
-(8, 9, 3, 'Murakami chưa bao giờ làm tôi thất vọng.', 5),
-(9, 10, 4, 'Đọc xong suy nghĩ nhiều.', 4),
-(10, 11, 2, 'Cảm động và ám ảnh.', 5),
-(11, 12, 3, 'Đỉnh cao văn học Nga.', 5),
-(12, 15, 5, 'Thay đổi tư duy của tôi.', 5),
-(13, 16, 4, 'Hữu ích cho người trẻ.', 4),
-(14, 17, 5, 'Xuất sắc!', 5),
-(15, 19, 2, 'Kinh điển self-help.', 5),
-(16, 22, 3, 'Deep và đáng suy ngẫm.', 4),
-(17, 25, 4, 'Nguyễn Nhật Ánh quá tuyệt.', 5),
-(18, 28, 5, 'Tuổi thơ quay về.', 5),
-(19, 31, 3, 'Văn phong đẹp.', 4),
-(20, 44, 2, 'Nội dung rất mới mẻ.', 4);
-
--- ===============================================================
 -- 14. INSERT ĐƠN HÀNG (ORDERS)
 -- ===============================================================
 INSERT INTO orders (id, user_id, user_address_id, total, shipping_status, shipping_address, shipping_phone, note) VALUES
@@ -783,6 +758,32 @@ INSERT INTO payment (order_id, payment_method, amount, status, provider, transac
   (53, 'cod', 185000, 'pending', 'COD', NULL, NULL),
   (54, 'card', 175000, 'success', 'VNPay', 'TXN1054', DATE_SUB(NOW(), INTERVAL 273 DAY)),
   (55, 'card', 205000, 'success', 'VNPay', 'TXN1055', DATE_SUB(NOW(), INTERVAL 279 DAY));
+
+-- ===============================================================
+-- 13. INSERT BÌNH LUẬN (COMMENTS - có order_id để hiển thị "đã mua")
+-- Lưu ý: comment phải tham chiếu đến order_id hợp lệ (FK) và nên là đơn delivered.
+-- ===============================================================
+INSERT INTO comments (id, book_id, user_id, order_id, content, rating) VALUES
+(1, 1, 2, 6,  'Sách rất hay và dễ hiểu.', 5),
+(2, 1, 3, 11, 'Khá thú vị, đáng đọc.', 4),
+(3, 3, 2, 34, 'Nội dung sâu sắc.', 5),
+(4, 14, 4, 20, 'Hơi khó đọc nhưng giá trị.', 4),
+(5, 5, 3, 11, 'Một trong những cuốn hay nhất.', 5),
+(6, 4, 5, 33, 'Cảm xúc và ý nghĩa.', 5),
+(7, 7, 2, 6,  'Tác phẩm kinh điển, rất ấn tượng.', 5),
+(8, 2, 3, 19, 'Murakami chưa bao giờ làm tôi thất vọng.', 5),
+(9, 9, 4, 36, 'Đọc xong suy nghĩ nhiều.', 4),
+(10, 15, 2, 38, 'Cảm động và ám ảnh.', 5),
+(11, 12, 3, 43, 'Đỉnh cao văn học Nga.', 5),
+(12, 5, 5, 25, 'Thay đổi tư duy của tôi.', 5),
+(13, 14, 4, 20, 'Hữu ích cho người trẻ.', 4),
+(14, 3, 5, 49, 'Xuất sắc!', 5),
+(15, 6, 2, 14, 'Kinh điển self-help.', 5),
+(16, 8, 3, 15, 'Deep và đáng suy ngẫm.', 4),
+(17, 7, 4, 36, 'Nguyễn Nhật Ánh quá tuyệt.', 5),
+(18, 12, 5, 29, 'Tuổi thơ quay về.', 5),
+(19, 10, 3, 19, 'Văn phong đẹp.', 4),
+(20, 12, 2, 54, 'Nội dung rất mới mẻ.', 4);
 
 
 SET FOREIGN_KEY_CHECKS = 1;

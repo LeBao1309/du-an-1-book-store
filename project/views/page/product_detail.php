@@ -588,9 +588,26 @@ textarea.form-control {
     margin-bottom: 10px;
 }
 
+.comment-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .comment-header strong {
     color: #333;
     font-size: 16px;
+}
+
+.comment-verified {
+    font-size: 12px;
+    color: #0f5132;
+    background: #d1e7dd;
+    border: 1px solid #badbcc;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.6;
 }
 
 .comment-rating {
@@ -1341,7 +1358,12 @@ textarea.form-control {
         <?php foreach ($comments as $comment): ?>
         <div class="comment-item">
           <div class="comment-header">
-            <strong>👤 <?php echo htmlspecialchars($comment['user_name']); ?></strong>
+            <div class="comment-user">
+              <strong>👤 <?php echo htmlspecialchars($comment['user_name']); ?></strong>
+              <?php if (!empty($comment['order_id'])): ?>
+                <span class="comment-verified">✅ Đã mua • Đơn #<?php echo (int)$comment['order_id']; ?></span>
+              <?php endif; ?>
+            </div>
             
             <?php if (!empty($comment['rating'])): ?>
             <span class="comment-rating">

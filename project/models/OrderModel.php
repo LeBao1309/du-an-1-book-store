@@ -249,22 +249,35 @@ final class OrderModel extends BaseModel
      */
     public static function hasUserPurchasedBook(int $userId, int $bookId): bool
     {
-        $sql = "SELECT COUNT(*) as count
-                FROM orders o
-                JOIN order_items oi ON o.id = oi.order_id
-                JOIN book_variants bv ON oi.variant_id = bv.id
-                WHERE o.user_id = :user_id 
-                  AND bv.book_id = :book_id
-                  AND o.shipping_status = 'delivered'";
-        
+        return self::getLatestDeliveredOrderIdForBook($userId, $bookId) !== null;
+    }
+
+    /**
+     * Lấy order_id mới nhất (đã delivered) của user có chứa book_id.
+     * Dùng để gắn vào comment/review nhằm hiển thị "đã mua".
+     */
+    public static function getLatestDeliveredOrderIdForBook(int $userId, int $bookId): ?int
+    {
+        $sql = "
+            SELECT o.id
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN book_variants bv ON oi.variant_id = bv.id
+            WHERE o.user_id = :user_id
+              AND bv.book_id = :book_id
+              AND o.shipping_status = 'delivered'
+            ORDER BY o.created_at DESC, o.id DESC
+            LIMIT 1
+        ";
+
         $stmt = self::db()->prepare($sql);
         $stmt->execute([
             ':user_id' => $userId,
-            ':book_id' => $bookId
+            ':book_id' => $bookId,
         ]);
-        
-        $result = $stmt->fetch();
-        return $result && $result['count'] > 0;
+
+        $orderId = $stmt->fetchColumn();
+        return $orderId ? (int)$orderId : null;
     }
 
     /**

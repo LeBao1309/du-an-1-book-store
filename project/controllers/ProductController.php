@@ -108,8 +108,16 @@ class ProductController extends BaseController
             exit;
         }
 
+        // Lấy order_id đã mua (delivered) để gắn vào bình luận
+        $orderId = OrderModel::getLatestDeliveredOrderIdForBook($userId, $bookId);
+        if (empty($orderId)) {
+            $_SESSION['error'] = 'Không tìm thấy đơn hàng hợp lệ cho sản phẩm này để gắn vào đánh giá!';
+            header("Location: index.php?controller=product&action=detail&id={$bookId}");
+            exit;
+        }
+
         // Thêm bình luận vào database
-        $result = CommentModel::create($bookId, $userId, $content, $rating);
+        $result = CommentModel::create($bookId, $userId, (int)$orderId, $content, $rating);
 
         // Thông báo và quay lại trang chi tiết
         if ($result) {

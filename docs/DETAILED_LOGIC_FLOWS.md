@@ -1133,7 +1133,7 @@ created_at DATETIME
 
 ### 2. Bình Luận & Đánh Giá
 
-**URL:** `?controller=page&action=addComment` (POST AJAX)
+**URL:** `?controller=product&action=addComment` (POST)
 
 **Luồng:**
 ```
@@ -1142,21 +1142,23 @@ created_at DATETIME
 2. Parse
    - book_id: int
    - content: string
-   - rating: int (1-5, optional)
+   - rating: int (1-5)
 
 3. Validate
    - book_id tồn tại
-   - content không rỗng, tối thiểu 10 ký tự
+   - content không rỗng
    - rating 1-5
-   - User chưa comment cho sách này (hoặc allow edit)
+   - User đã mua và nhận hàng (orders.shipping_status = 'delivered')
 
 4. Insert comment
-   a) CommentModel::create($book_id, $user_id, $content, $rating)
-      INSERT INTO comments 
-      (book_id, user_id, content, rating, is_approved, created_at)
-      VALUES (?, ?, ?, ?, 1, NOW())
+   a) Lấy order_id hợp lệ để gắn "đã mua"
+      - OrderModel::getLatestDeliveredOrderIdForBook($user_id, $book_id)
+
+   b) CommentModel::create($book_id, $user_id, $order_id, $content, $rating)
+      INSERT INTO comments (book_id, user_id, order_id, content, rating, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
    
-   b) Recalculate book rating
+   c) Recalculate book rating
       SELECT AVG(rating) as avg_rating, COUNT(*) as total
       FROM comments
       WHERE book_id = ? AND rating IS NOT NULL
@@ -1165,8 +1167,8 @@ created_at DATETIME
       SET rating_avg = ?, review_count = ?
       WHERE id = ?
 
-5. Return JSON
-   - { success, comment: { id, content, rating, created_at } }
+5. Render UI
+   - Danh sách bình luận hiển thị badge: `✅ Đã mua • Đơn #<order_id>`
 ```
 
 ### 3. Liên Hệ (Contact Form)
@@ -1419,4 +1421,3 @@ Hệ thống WiseDecision Bookstore được thiết kế theo mô hình MVC chu
 ✅ **Communication**: Email system, contact form, order notifications  
 
 Tất cả luồng được thiết kế để đảm bảo tính toàn vẹn dữ liệu, bảo mật, và trải nghiệm người dùng tối ưu.
-

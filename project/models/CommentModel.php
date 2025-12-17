@@ -61,20 +61,22 @@ final class CommentModel extends BaseModel
      * Thêm bình luận mới
      * @param int $bookId ID của cuốn sách
      * @param int $userId ID của người dùng
+     * @param int $orderId ID đơn hàng (đã mua)
      * @param string $content Nội dung bình luận
      * @param int|null $rating Điểm đánh giá (1-5)
      * @return bool True nếu thành công
      */
-    public static function create(int $bookId, int $userId, string $content, ?int $rating = null): bool
+    public static function create(int $bookId, int $userId, int $orderId, string $content, ?int $rating = null): bool
     {
         try {
-            $sql = "INSERT INTO comments (book_id, user_id, content, rating, created_at)
-                    VALUES (:bookId, :userId, :content, :rating, NOW())";
+            $sql = "INSERT INTO comments (book_id, user_id, order_id, content, rating, created_at)
+                    VALUES (:bookId, :userId, :orderId, :content, :rating, NOW())";
             
             $stmt = self::db()->prepare($sql);
             $ok = $stmt->execute([
                 ':bookId' => $bookId,
                 ':userId' => $userId,
+                ':orderId' => $orderId,
                 ':content' => $content,
                 ':rating' => $rating
             ]);
